@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>MoodFlix - Find Movies by Mood</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet" />
+    <style>
+        :root {
+            --content-max-width: 1400px;
+            --content-padding: 20px;
+            --text: #fff;
+            --text-secondary: #aaa;
+            --text-tertiary: #ccc;
+            --card-bg: rgba(20, 20, 20, 0.7);
+            --border-radius-md: 8px;
+            --transition-normal: 0.3s ease;
+            --shadow-medium: 0 10px 20px rgba(0, 0, 0, 0.3);
+            --shadow-light: 0 5px 10px rgba(0, 0, 0, 0.2);
+            --shadow-strong: 0 15px 30px rgba(0, 0, 0, 0.4);
+            --primary: #e50914;
+            --card-hover-bg: rgba(20, 20, 20, 0.9);
+        }
+        
+        .content-container {
+            width: 100%;
+            max-width: var(--content-max-width);
+            padding: var(--content-padding);
+            margin: 0 auto;
+        }
+        
+        .intro-text {
+            font-size: 1.2rem;
+            color: var(--text-secondary);
+            margin-bottom: 2rem;
+            text-align: center;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            line-height: 1.6;
+        }
+        
+        /* Mood selection styles */
+        .mood-section {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        
+        .mood-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        
+        @media (max-width: 1200px) {
+            .mood-grid {
+                grid-template-columns: repeat(4, 1fr);
+            }
+        }
+        
+        @media (max-width: 992px) {
+            .mood-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .mood-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .mood-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .mood {
+            background-color: var(--card-bg);
+            border-radius: var(--border-radius-md);
+            padding: 40px 20px;
+            text-align: center;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text);
+            cursor: pointer;
+            transition: all var(--transition-normal);
+            position: relative;
+            overflow: hidden;
+            box-shadow: var(--shadow-light);
+            border: 2px solid transparent;
+        }
+        
+        .mood::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-size: cover;
+            background-position: center;
+            opacity: 0.3;
+            z-index: 0;
+            transition: opacity var(--transition-normal);
+        }
+        
+        .mood span {
+            position: relative;
+            z-index: 1;
+        }
+        
+        .mood:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-medium);
+            border-color: var(--primary);
+        }
+        
+        .mood:hover::before {
+            opacity: 0.5;
+        }
+        
+        .mood.active {
+            background-color: var(--primary);
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-medium);
+        }
+        
+        .happy::before { background-image: url('https://images.unsplash.com/photo-1531686264889-56fdcabd163f?ixlib=rb-1.2.1&auto=format&fit=crop&w=300&q=80'); }
+        .sad::before { background-image: url('https://images.unsplash.com/photo-1516585427167-9f4af9627e6c?ixlib=rb-1.2.1&auto=format&fit=crop&w=300&q=80'); }
+        .romantic::before { background-image: url('https://images.unsplash.com/photo-1518199266791-5375a83190b7?ixlib=rb-1.2.1&auto=format&fit=crop&w=300&q=80'); }
+        .tense::before { background-image: url('https://images.unsplash.com/photo-1509248961158-e54f6934749c?ixlib=rb-1.2.1&auto=format&fit=crop&w=300&q=80'); }
+        .excited::before { background-image: url('https://images.unsplash.com/photo-1513151233558-d860c5398176?ixlib=rb-1.2.1&auto=format&fit=crop&w=300&q=80'); }
+        .relaxed::before { background-image: url('https://images.unsplash.com/photo-1506126613408-eca07ce68773?ixlib=rb-1.2.1&auto=format&fit=crop&w=300&q=80'); }
+        
+        /* Recommendations section */
+        .recommendations-section {
+            margin-top: 3rem;
+        }
+        
+        .recommendations-title {
+            color: var(--text);
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            text-align: center;
+        }
+        
+        .mood-name {
+            color: var(--primary);
+            text-transform: capitalize;
+        }
+        
+        /* Movie grid - EXACTLY 5 per row */
+        .movie-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 20px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        /* Movie card styles - EXACTLY like homepage */
+        .movie-card-link {
+            text-decoration: none;
+            color: inherit;
+            display: block;
+            height: 100%;
+        }
+        
+        .movie-card {
+            background-color: var(--card-bg);
+            border-radius: var(--border-radius-md);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            transition: all var(--transition-normal);
+            width: 100%;
+            height: 440px;
+            box-shadow: var(--shadow-light);
+            position: relative;
+        }
+        
+        .movie-card:hover {
+            transform: scale(1.05);
+            box-shadow: var(--shadow-strong);
+            background-color: var(--card-hover-bg);
+        }
+        
+        .movie-card::after {
+            content: "";
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 40%;
+            background: linear-gradient(to top, rgba(0, 0, 0, 0.8) 0%, transparent 100%);
+            opacity: 0;
+            transition: opacity var(--transition-normal);
+            pointer-events: none;
+        }
+        
+        .movie-card:hover::after {
+            opacity: 1;
+        }
+        
+        .movie-poster {
+            width: 100%;
+            height: 70%;
+            object-fit: cover;
+            transition: transform var(--transition-normal);
+        }
+        
+        .movie-card:hover .movie-poster {
+            transform: scale(1.05);
+        }
+        
+        .movie-info-block {
+            flex-grow: 1;
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            background: linear-gradient(to top, var(--card-bg) 0%, rgba(30, 30, 30, 0.9) 100%);
+            position: relative;
+            z-index: 2;
+        }
+        
+        .movie-title {
+            color: var(--primary);
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin: 0.3rem 0;
+            height: 2.8em;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            text-align: center;
+            width: 100%;
+            transition: color var(--transition-fast);
+        }
+        
+        .movie-card:hover .movie-title {
+            color: #ff1a1a;
+        }
+        
+        .movie-genre {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin: 0.2rem 0;
+            text-align: center;
+            width: 100%;
+            font-weight: 500;
+        }
+        
+        .movie-rating {
+            font-size: 0.9rem;
+            color: var(--text-tertiary);
+            margin: 0.4rem 0 0;
+            text-align: center;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.3rem;
+        }
+        
+        .movie-rating::before {
+            content: "★";
+            color: #ffc107;
+        }
+        
+        /* Loading and no results states */
+        .loading, .no-results {
+            text-align: center;
+            padding: 3rem;
+            font-size: 1.2rem;
+            color: var(--text-secondary);
+        }
+        
+        .loading::after {
+            content: "...";
+            animation: dots 1.5s infinite;
+        }
+        
+        @keyframes dots {
+            0%, 20% { content: "."; }
+            40% { content: ".."; }
+            60%, 100% { content: "..."; }
+        }
+        
+        /* Responsive adjustments */
+        @media (max-width: 1200px) {
+            .movie-grid {
+                grid-template-columns: repeat(4, 1fr);
+            }
+        }
+        
+        @media (max-width: 992px) {
+            .movie-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .movie-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .movie-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Navbar styling */
+        nav {
+            display: flex;
+            justify-content: center;
+            flex: 1;
+            margin-left: 260px; /* Add this line to move nav links to the right */
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 2rem;
+            background-color: rgba(0, 0, 0, 0.8);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .logo {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .search-profile {
+            display: flex;
+            align-items: center;
+        }
+
+        /* User dropdown styles */
+        .user-dropdown {
+            position: relative;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+        }
+
+        .label, .username {
+            font-size: 14px; /* Make both the same size */
+            color: var(--text);
+        }
+
+        .label {
+            color: var(--text-secondary);
+            margin-right: 5px;
+        }
+
+        .username {
+            font-weight: 600;
+        }
+
+        .dropdown-menu {
+            display: none;
+            position: absolute;
+            top: 100%;
+            right: 0;
+            background-color: rgba(30, 30, 30, 0.95);
+            border-radius: var(--border-radius-sm);
+            box-shadow: var(--shadow-medium);
+            min-width: 150px;
+            z-index: 100;
+            margin-top: 10px;
+            overflow: hidden;
+        }
+
+        .dropdown-menu a {
+            display: block;
+            padding: 10px 15px;
+            color: var(--text);
+            text-decoration: none;
+            transition: all var(--transition-fast);
+        }
+
+        .dropdown-menu a:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+            color: var(--primary);
+        }
+
+        /* Search container styles */
+        .search-container {
+            margin-right: 20px;
+        }
+
+        .search-container form {
+            display: flex;
+            align-items: center;
+        }
+
+        .search-container input {
+            background-color: rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 14px;
+            width: 200px;
+            transition: all 0.3s ease;
+        }
+
+        .search-container input:focus {
+            outline: none;
+            border-color: var(--primary);
+            width: 240px;
+        }
+
+        .search-container input::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+        }
+    </style>
+</head>
+<body>
+    <header>
+    <div class="logo">MoodFlix</div>
+    <nav>
+        <a href="{{ url_for('home') }}">Home</a>
+        <a href="{{ url_for('watchlist') }}">My Watchlist</a>
+        <a href="{{ url_for('moods') }}" class="active">Mood</a>
+        <a href="{{ url_for('explore') }}">Explore</a>
+    </nav>
+    <div class="search-profile">
+        <div class="search-container">
+            <form action="{{ url_for('search') }}" method="GET">
+                <input type="text" name="query" placeholder="Search movies..." required>
+            </form>
+        </div>
+        {% if username != "Guest" %}
+        <div class="user-dropdown" onclick="toggleDropdown()">
+            <span class="label">Logged in as</span>
+            <span class="username">{{ username }}</span>
+            <div class="dropdown-menu" id="userDropdown">
+                <a href="{{ url_for('profile') }}">View Profile</a>
+                <a href="{{ url_for('logout') }}">Logout</a>
+            </div>
+        </div>
+        {% else %}
+        <span class="label">Logged in as</span>
+        <a href="{{ url_for('signin') }}" class="guest">Guest</a>
+        {% endif %}
+    </div>
+</header>
+
+    <main>
+        <div class="content-container">
+            <section class="mood-section">
+                <h1 style="text-align: center; margin-top: 2rem;">How are you feeling today?</h1>
+                <p class="intro-text">Select a mood and we'll recommend movies that match your vibe using our intelligent recommendation system.</p>
+                
+                <div class="mood-grid">
+                    <div class="mood happy" data-mood="happy">
+                        <span>Happy</span>
+                    </div>
+                    <div class="mood sad" data-mood="sad">
+                        <span>Sad</span>
+                    </div>
+                    <div class="mood romantic" data-mood="romantic">
+                        <span>Romantic</span>
+                    </div>
+                    <div class="mood tense" data-mood="tense">
+                        <span>Tense</span>
+                    </div>
+                    <div class="mood excited" data-mood="excited">
+                        <span>Excited</span>
+                    </div>
+                    <div class="mood relaxed" data-mood="relaxed">
+                        <span>Relaxed</span>
+                    </div>
+                </div>
+            </section>
+            
+            <section class="recommendations-section" id="recommendations-section" style="display: none;">
+                <h2 class="recommendations-title">Movies for your <span id="selected-mood" class="mood-name">mood</span></h2>
+                <div class="movie-grid" id="movie-grid"></div>
+            </section>
+            
+            <div id="loading" class="loading" style="display: none;">
+                Finding the perfect movies for your mood
+            </div>
+            
+            <div id="no-results" class="no-results" style="display: none;">
+                We couldn't find any movies matching your mood. Try another one!
+            </div>
+        </div>
+    </main>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const moodButtons = document.querySelectorAll('.mood');
+            const recommendationsSection = document.getElementById('recommendations-section');
+            const movieGrid = document.getElementById('movie-grid');
+            const selectedMoodSpan = document.getElementById('selected-mood');
+            const loadingElement = document.getElementById('loading');
+            const noResultsElement = document.getElementById('no-results');
+            
+            // Add click event to each mood button
+            moodButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    // Remove active class from all buttons
+                    moodButtons.forEach(btn => btn.classList.remove('active'));
+                    
+                    // Add active class to clicked button
+                    this.classList.add('active');
+                    
+                    const mood = this.getAttribute('data-mood');
+                    selectedMoodSpan.textContent = mood;
+                    
+                    // Show loading
+                    loadingElement.style.display = 'block';
+                    recommendationsSection.style.display = 'none';
+                    noResultsElement.style.display = 'none';
+                    movieGrid.innerHTML = '';
+                    
+                    // Fetch movie recommendations
+                    fetchMoviesByMood(mood);
+                });
+            });
+            
+            // Function to fetch movies by mood
+            function fetchMoviesByMood(mood) {
+                fetch(`/api/movies/by_mood?mood=${mood}`)
+                    .then(response => response.json())
+                    .then(movies => {
+                        // Hide loading
+                        loadingElement.style.display = 'none';
+                        
+                        if (movies.length === 0) {
+                            noResultsElement.style.display = 'block';
+                            return;
+                        }
+                        
+                        // Display recommendations
+                        recommendationsSection.style.display = 'block';
+                        
+                        // Clear previous results
+                        movieGrid.innerHTML = '';
+                        
+                        // Add movie cards - EXACTLY like homepage
+                        movies.forEach(movie => {
+                            const cardLink = document.createElement('a');
+                            cardLink.href = `/movie/${encodeURIComponent(movie.title)}`;
+                            cardLink.className = 'movie-card-link';
+                            
+                            cardLink.innerHTML = `
+                                <div class="movie-card">
+                                    <img src="${movie.poster_url}" alt="${movie.title} poster" class="movie-poster" />
+                                    <div class="movie-info-block">
+                                        <div class="movie-title text-center">${movie.title}</div>
+                                        <p class="movie-genre text-center">${movie.genre}</p>
+                                        <p class="movie-rating text-center">${movie.rating}/10</p>
+                                    </div>
+                                </div>
+                            `;
+                            
+                            movieGrid.appendChild(cardLink);
+                        });
+                    })
+                    .catch(error => {
+                        console.error('Error fetching movies:', error);
+                        loadingElement.style.display = 'none';
+                        noResultsElement.style.display = 'block';
+                    });
+            }
+            
+            function toggleDropdown() {
+                const menu = document.getElementById('userDropdown');
+                menu.style.display = (menu.style.display === 'block') ? 'none' : 'block';
+            }
+            
+            window.addEventListener('click', function(e) {
+                const dropdown = document.getElementById('userDropdown');
+                if (dropdown && !e.target.closest('.user-dropdown')) {
+                    dropdown.style.display = 'none';
+                }
+            });
+        });
+    </script>
+</body>
+</html>

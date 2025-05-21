@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>{{ movie.title }} - MoodFlix</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.9);
+            animation: fadeIn 0.3s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal-content {
+            position: relative;
+            margin: 5% auto;
+            width: 80%;
+            max-width: 800px;
+            animation: fadeIn 0.4s ease-in-out;
+        }
+
+        .modal-content iframe {
+            width: 100%;
+            height: 450px;
+            border: none;
+        }
+
+        .close-btn {
+            position: absolute;
+            top: -30px;
+            right: 0;
+            color: white;
+            font-size: 2rem;
+            cursor: pointer;
+        }
+
+        .back-button {
+            display: inline-block;
+            margin-bottom: 1rem;
+            padding: 0.5rem 1rem;
+            background-color: red;
+            color: white;
+            text-decoration: none;
+            font-weight: bold;
+            border-radius: 4px;
+        }
+
+        .back-button:hover {
+            background-color: #e50914;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+        
+        .action-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.25rem;
+            border: none;
+            border-radius: var(--border-radius-sm);
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all var(--transition-fast);
+        }
+        
+        .primary-btn {
+            background-color: var(--primary);
+            color: white;
+        }
+        
+        .primary-btn:hover {
+            background-color: var(--primary-hover);
+            transform: translateY(-2px);
+        }
+        
+        .secondary-btn {
+            background-color: rgba(255, 255, 255, 0.1);
+            color: var(--text);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .secondary-btn:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+        }
+        
+        .success-btn {
+            background-color: #2ecc71;
+            color: white;
+        }
+        
+        .success-btn:hover {
+            background-color: #27ae60;
+            transform: translateY(-2px);
+        }
+        
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background-color: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 1rem 1.5rem;
+            border-radius: var(--border-radius-md);
+            z-index: 1000;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.3s ease;
+            box-shadow: var(--shadow-medium);
+        }
+        
+        .toast.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        .toast.success {
+            border-left: 4px solid #2ecc71;
+        }
+        
+        .toast.error {
+            border-left: 4px solid var(--primary);
+        }
+        
+        /* Style for movies without trailers */
+        .no-trailer-container {
+            padding: 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+        }
+        
+        @media (min-width: 768px) {
+            .no-trailer-container {
+                flex-direction: row;
+                align-items: flex-start;
+            }
+        }
+        
+        .no-trailer-poster {
+            width: 100%;
+            max-width: 300px;
+            border-radius: var(--border-radius-md);
+            box-shadow: var(--shadow-medium);
+        }
+        
+        .no-trailer-info {
+            flex: 1;
+        }
+        
+        .no-trailer-title {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+
+        /* Navbar styling */
+        nav {
+            display: flex;
+            justify-content: center;
+            flex: 1;
+            margin-left: 260px; /* Add this line to move nav links to the right */
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 2rem;
+            background-color: rgba(0, 0, 0, 0.8);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .logo {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .search-profile {
+            display: flex;
+            align-items: center;
+        }
+
+        /* User dropdown styles */
+        .user-dropdown {
+            position: relative;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+        }
+
+        .label, .username {
+            font-size: 14px; /* Make both the same size */
+            color: var(--text);
+        }
+
+        .label {
+            color: var(--text-secondary);
+            margin-right: 5px;
+        }
+
+        .username {
+            font-weight: 600;
+        }
+
+        .dropdown-menu {
+            display: none;
+            position: absolute;
+            top: 100%;
+            right: 0;
+            background-color: rgba(30, 30, 30, 0.95);
+            border-radius: var(--border-radius-sm);
+            box-shadow: var(--shadow-medium);
+            min-width: 150px;
+            z-index: 100;
+            margin-top: 10px;
+            overflow: hidden;
+        }
+
+        .dropdown-menu a {
+            display: block;
+            padding: 10px 15px;
+            color: var(--text);
+            text-decoration: none;
+            transition: all var(--transition-fast);
+        }
+
+        .dropdown-menu a:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+            color: var(--primary);
+        }
+
+        /* Search container styles */
+        .search-container {
+            margin-right: 20px;
+        }
+
+        .search-container form {
+            display: flex;
+            align-items: center;
+        }
+
+        .search-container input {
+            background-color: rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 14px;
+            width: 200px;
+            transition: all 0.3s ease;
+        }
+
+        .search-container input:focus {
+            outline: none;
+            border-color: var(--primary);
+            width: 240px;
+        }
+
+        .search-container input::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+        }
+    </style>
+</head>
+<body>
+    <header>
+    <div class="logo">MoodFlix</div>
+    <nav>
+        <a href="{{ url_for('home') }}">Home</a>
+        <a href="{{ url_for('watchlist') }}">My Watchlist</a>
+        <a href="{{ url_for('moods') }}">Mood</a>
+        <a href="{{ url_for('explore') }}">Explore</a>
+    </nav>
+    <div class="search-profile">
+        <div class="search-container">
+            <form action="{{ url_for('search') }}" method="GET">
+                <input type="text" name="query" placeholder="Search movies..." required>
+            </form>
+        </div>
+        {% if username != "Guest" %}
+        <div class="user-dropdown" onclick="toggleDropdown()">
+            <span class="label">Logged in as</span>
+            <span class="username">{{ username }}</span>
+            <div class="dropdown-menu" id="userDropdown">
+                <a href="{{ url_for('profile') }}">View Profile</a>
+                <a href="{{ url_for('logout') }}">Logout</a>
+            </div>
+        </div>
+        {% else %}
+        <span class="label">Logged in as</span>
+        <a href="{{ url_for('signin') }}" class="guest">Guest</a>
+        {% endif %}
+    </div>
+</header>
+
+    <main>
+      {% if movie.trailer_url and ('youtube.com' in movie.trailer_url or 'youtu.be' in movie.trailer_url) %}
+      <!-- TRAILER HEADER -->
+        <div class="trailer-header">
+          <div class="trailer-video-wrapper">
+            <iframe
+              src="{{ movie.trailer_url }}?autoplay=1&mute=1&controls=0&loop=1&playlist={{ movie.trailer_url.split('/')[-1] }}&rel=0&modestbranding=1"
+              allow="autoplay; fullscreen"
+              allowfullscreen>
+            </iframe>
+            <div class="trailer-gradient"></div>
+          </div>
+        </div>
+        
+        <!-- POSTER + DETAILS -->
+        <div class="trailer-overlay trailer-layout">
+          <img src="{{ movie.poster_url }}" alt="{{ movie.title }} poster" class="trailer-poster" />
+
+          <div class="trailer-info-container">
+            <div class="trailer-title-wrapper">
+              <h1 class="movie-title-centered">{{ movie.title }}</h1>
+            </div>
+            
+            <div class="trailer-details">
+              <p><strong>Genre:</strong> {{ movie.genre }}</p>
+              <p><strong>Rating:</strong> {{ movie.rating }}/10</p>
+              <p><strong>Release Date:</strong> {{ movie.release_date }}</p>
+              <p><strong>Runtime:</strong> {{ movie.runtime }} min</p>
+              <p><strong>Cast:</strong> {{ movie.cast }}</p>
+              <p><strong>Description:</strong> {{ movie.description or 'No description available.' }}</p>
+              
+              {% if username != "Guest" %}
+              <div class="action-buttons">
+                {% if not in_watchlist %}
+                <button id="addToWatchlistBtn" class="action-btn primary-btn">
+                  <span>+ Add to Watchlist</span>
+                </button>
+                {% else %}
+                <button id="removeFromWatchlistBtn" class="action-btn secondary-btn">
+                  <span>Remove from Watchlist</span>
+                </button>
+                {% endif %}
+                
+                {% if in_watchlist and not is_watched %}
+                <button id="markAsWatchedBtn" class="action-btn success-btn">
+                  <span>✓ Mark as Watched</span>
+                </button>
+                {% elif in_watchlist and is_watched %}
+                <button id="unmarkAsWatchedBtn" class="action-btn secondary-btn">
+                  <span>Mark as Unwatched</span>
+                </button>
+                {% endif %}
+              </div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      {% else %}
+        <!-- Alternative layout for movies without YouTube trailers -->
+        <div class="no-trailer-container">
+          <img src="{{ movie.poster_url }}" alt="{{ movie.title }} poster" class="no-trailer-poster" />
+          
+          <div class="no-trailer-info">
+            <h1 class="no-trailer-title">{{ movie.title }}</h1>
+            
+            <div class="movie-details">
+              <p><strong>Genre:</strong> {{ movie.genre }}</p>
+              <p><strong>Rating:</strong> {{ movie.rating }}/10</p>
+              <p><strong>Release Date:</strong> {{ movie.release_date }}</p>
+              <p><strong>Runtime:</strong> {{ movie.runtime }} min</p>
+              <p><strong>Cast:</strong> {{ movie.cast }}</p>
+              <p><strong>Description:</strong> {{ movie.description or 'No description available.' }}</p>
+              
+              {% if username != "Guest" %}
+              <div class="action-buttons">
+                {% if not in_watchlist %}
+                <button id="addToWatchlistBtn" class="action-btn primary-btn">
+                  <span>+ Add to Watchlist</span>
+                </button>
+                {% else %}
+                <button id="removeFromWatchlistBtn" class="action-btn secondary-btn">
+                  <span>Remove from Watchlist</span>
+                </button>
+                {% endif %}
+                
+                {% if in_watchlist and not is_watched %}
+                <button id="markAsWatchedBtn" class="action-btn success-btn">
+                  <span>✓ Mark as Watched</span>
+                </button>
+                {% elif in_watchlist and is_watched %}
+                <button id="unmarkAsWatchedBtn" class="action-btn secondary-btn">
+                  <span>Mark as Unwatched</span>
+                </button>
+                {% endif %}
+              </div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      {% endif %}
+    </main>
+
+    {% if movie.trailer_url and ('youtube.com' in movie.trailer_url or 'youtu.be' in movie.trailer_url) %}
+    <div id="trailerModal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeModal()">&times;</span>
+            <iframe data-src="{{ movie.trailer_url | replace('watch?v=', 'embed/') }}" allowfullscreen></iframe>
+        </div>
+    </div>
+    {% endif %}
+    
+    <div id="toast" class="toast"></div>
+
+    <script>
+        function openModal() {
+            const modal = document.getElementById("trailerModal");
+            const iframe = modal.querySelector("iframe");
+            const originalSrc = iframe.dataset.src;
+            iframe.src = originalSrc + "?autoplay=1&rel=0&modestbranding=1";
+            modal.style.display = "block";
+        }
+
+        function closeModal() {
+            const modal = document.getElementById("trailerModal");
+            const iframe = modal.querySelector("iframe");
+            iframe.src = "";
+            modal.style.display = "none";
+        }
+
+        window.onclick = function(event) {
+            const modal = document.getElementById("trailerModal");
+            if (event.target === modal) {
+                closeModal();
+            }
+        }
+
+        document.addEventListener("keydown", function(event) {
+            if (event.key === "Escape") {
+                closeModal();
+            }
+        });
+        
+        function toggleDropdown() {
+            const menu = document.getElementById('userDropdown');
+            menu.style.display = (menu.style.display === 'block') ? 'none' : 'block';
+        }
+        
+        window.addEventListener('click', function(e) {
+            const dropdown = document.getElementById('userDropdown');
+            if (dropdown && !e.target.closest('.user-dropdown')) {
+                dropdown.style.display = 'none';
+            }
+        });
+        
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = `toast ${type}`;
+            toast.classList.add('show');
+            
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+        
+        {% if username != "Guest" %}
+        // Watchlist functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            const addToWatchlistBtn = document.getElementById('addToWatchlistBtn');
+            const removeFromWatchlistBtn = document.getElementById('removeFromWatchlistBtn');
+            const markAsWatchedBtn = document.getElementById('markAsWatchedBtn');
+            const unmarkAsWatchedBtn = document.getElementById('unmarkAsWatchedBtn');
+            
+            if (addToWatchlistBtn) {
+                addToWatchlistBtn.addEventListener('click', function() {
+                    fetch('/api/watchlist/add', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            movie_title: '{{ movie.title }}'
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            showToast('Added to your watchlist!');
+                            window.location.reload();
+                        } else {
+                            showToast(data.message, 'error');
+                        }
+                    })
+                    .catch(error => {
+                        showToast('An error occurred', 'error');
+                        console.error('Error:', error);
+                    });
+                });
+            }
+            
+            if (removeFromWatchlistBtn) {
+                removeFromWatchlistBtn.addEventListener('click', function() {
+                    fetch('/api/watchlist/remove', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            movie_title: '{{ movie.title }}'
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            showToast('Removed from your watchlist!');
+                            window.location.reload();
+                        } else {
+                            showToast(data.message, 'error');
+                        }
+                    })
+                    .catch(error => {
+                        showToast('An error occurred', 'error');
+                        console.error('Error:', error);
+                    });
+                });
+            }
+            
+            if (markAsWatchedBtn) {
+                markAsWatchedBtn.addEventListener('click', function() {
+                    fetch('/api/watchlist/watched', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            movie_title: '{{ movie.title }}'
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            showToast('Marked as watched!');
+                            window.location.reload();
+                        } else {
+                            showToast(data.message, 'error');
+                        }
+                    })
+                    .catch(error => {
+                        showToast('An error occurred', 'error');
+                        console.error('Error:', error);
+                    });
+                });
+            }
+            
+            if (unmarkAsWatchedBtn) {
+                unmarkAsWatchedBtn.addEventListener('click', function() {
+                    fetch('/api/watchlist/unwatched', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            movie_title: '{{ movie.title }}'
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            showToast('Marked as unwatched!');
+                            window.location.reload();
+                        } else {
+                            showToast(data.message, 'error');
+                        }
+                    })
+                    .catch(error => {
+                        showToast('An error occurred', 'error');
+                        console.error('Error:', error);
+                    });
+                });
+            }
+        });
+        {% endif %}
+    </script>
+</body>
+</html>
