@@ -1,6 +1,7 @@
 from flask import Flask, render_template, request, redirect, session, url_for, jsonify
 import sqlite3
 from db import init_db, get_movies_by_genre_paginated, get_user_watchlist, add_to_watchlist, remove_from_watchlist, mark_as_watched, unmark_as_watched, get_or_create_folder, rename_folder, delete_folder, move_to_folder, get_user_id_by_username
+import random
 
 app = Flask(__name__)
 app.secret_key = "supersecret"  # Change this in production
@@ -149,6 +150,88 @@ def profile():
         return redirect(url_for("signin"))
     return render_template("profile.html", username=username)
 
+# Function to get similar movies based on content-based filtering
+def get_similar_movies(movie_title, limit=5):
+    conn = sqlite3.connect("moodflix.db")
+    c = conn.cursor()
+    
+    # Get the current movie's details
+    c.execute('''
+        SELECT id, genre, "cast", description
+        FROM movies
+        WHERE title = ?
+    ''', (movie_title,))
+    
+    current_movie = c.fetchone()
+    if not current_movie:
+        conn.close()
+        return []
+    
+    current_id, current_genre, current_cast, current_description = current_movie
+    
+    # Get all other movies
+    c.execute('''
+        SELECT id, title, genre, description, rating, release_date, "cast", runtime, poster_url, trailer_url
+        FROM movies
+        WHERE id != ?
+    ''', (current_id,))
+    
+    all_movies = c.fetchall()
+    conn.close()
+    
+    # Calculate similarity scores
+    similar_movies = []
+    for movie in all_movies:
+        movie_id, title, genre, description, rating, release_date, cast, runtime, poster_url, trailer_url = movie
+        
+        # Calculate similarity based on genre, cast, and description
+        similarity_score = 0
+        
+        # Genre similarity (highest weight)
+        if genre and current_genre:
+            genre_set = set(genre.lower().split('|'))
+            current_genre_set = set(current_genre.lower().split('|'))
+            genre_intersection = genre_set.intersection(current_genre_set)
+            if genre_intersection:
+                similarity_score += len(genre_intersection) * 3
+        
+        # Cast similarity (medium weight)
+        if cast and current_cast:
+            cast_set = set(cast.lower().split(','))
+            current_cast_set = set(current_cast.lower().split(','))
+            cast_intersection = cast_set.intersection(current_cast_set)
+            if cast_intersection:
+                similarity_score += len(cast_intersection) * 2
+        
+        # Description similarity (lower weight)
+        if description and current_description:
+            # Simple word overlap for description
+            desc_words = set(description.lower().split())
+            current_desc_words = set(current_description.lower().split())
+            desc_intersection = desc_words.intersection(current_desc_words)
+            if desc_intersection:
+                # Exclude common words
+                common_words = {'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'with', 'by', 'of', 'is', 'are'}
+                desc_intersection = desc_intersection - common_words
+                similarity_score += len(desc_intersection) * 0.5
+        
+        similar_movies.append({
+            "title": title,
+            "genre": genre,
+            "description": description,
+            "rating": rating,
+            "release_date": release_date,
+            "cast": cast,
+            "runtime": runtime,
+            "poster_url": poster_url or "/static/posters/placeholder.jpg",
+            "trailer_url": trailer_url,
+            "similarity_score": similarity_score
+        })
+    
+    # Sort by similarity score and take top 'limit'
+    similar_movies.sort(key=lambda x: x["similarity_score"], reverse=True)
+    return similar_movies[:limit]
+
 @app.route("/movie/<title>")
 def view_movie(title):
     import sqlite3
@@ -207,9 +290,18 @@ def view_movie(title):
             is_watched = c.fetchone() is not None
         
         conn.close()
+    
+    # Get similar movies
+    similar_movies = get_similar_movies(title)
 
     return render_template("view_movies.html", movie=movie, username=username, 
-                          in_watchlist=in_watchlist, is_watched=is_watched)
+                          in_watchlist=in_watchlist, is_watched=is_watched,
+                          similar_movies=similar_movies)
+
+@app.route("/api/similar-movies/<title>")
+def api_similar_movies(title):
+    similar_movies = get_similar_movies(title)
+    return jsonify(similar_movies)
 
 @app.route("/explore")
 def explore():
