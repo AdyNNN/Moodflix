@@ -429,5 +429,3 @@ def get_movies_by_mood():
 
 if __name__ == "__main__":
     app.run(debug=True)
-
-#tite
