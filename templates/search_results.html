@@ -7,6 +7,128 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet" />
     <style>
+        /* Navbar styling */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 2rem;
+            background-color: rgba(0, 0, 0, 0.8);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .logo {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        nav {
+            display: flex;
+            justify-content: center;
+            flex: 1;
+            margin-left: 215px; /* Changed from 260px to 215px to match index.html */
+        }
+
+        .search-profile {
+            display: flex;
+            align-items: center;
+        }
+
+        .search-container {
+            margin-right: 20px;
+        }
+
+        .search-container form {
+            display: flex;
+            align-items: center;
+        }
+
+        .search-container input {
+            background-color: rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 14px;
+            width: 200px;
+            transition: all 0.3s ease;
+        }
+
+        .search-container input:focus {
+            outline: none;
+            border-color: var(--primary);
+            width: 240px;
+        }
+
+        .search-container input::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        /* User dropdown styles */
+        .user-dropdown {
+            position: relative;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+        }
+
+        .label, .username {
+            font-size: 14px; /* Make both the same size */
+            color: var(--text);
+        }
+
+        .label {
+            color: var(--text-secondary);
+            margin-right: -4px;
+        }
+
+        .username {
+            font-weight: 600;
+        }
+
+        .dropdown-menu {
+            display: none;
+            position: absolute;
+            top: 100%;
+            right: 0;
+            background-color: rgba(30, 30, 30, 0.95);
+            border-radius: var(--border-radius-sm);
+            box-shadow: var(--shadow-medium);
+            min-width: 150px;
+            z-index: 100;
+            margin-top: 10px;
+            overflow: hidden;
+        }
+
+        .dropdown-menu a {
+            display: block;
+            padding: 10px 15px;
+            color: var(--text);
+            text-decoration: none;
+            transition: all var(--transition-fast);
+        }
+
+        .dropdown-menu a:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+            color: var(--primary);
+        }
+
+        /* Guest link style */
+        a.guest {
+            color: var(--text);
+            text-decoration: none;
+            font-weight: 600;
+            transition: color var(--transition-fast);
+        }
+
+        a.guest:hover {
+            color: var(--primary);
+        }
+
+        /* Search results styling */
         .search-results-container {
             max-width: var(--content-max-width);
             margin: 0 auto;
@@ -159,85 +281,6 @@
                 grid-template-columns: 1fr;
             }
         }
-
-        /* Navbar styling */
-        nav {
-            display: flex;
-            justify-content: center;
-            flex: 1;
-            margin-left: 260px; /* Add this line to move nav links to the right */
-        }
-
-        header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 1rem 2rem;
-            background-color: rgba(0, 0, 0, 0.8);
-            position: sticky;
-            top: 0;
-            z-index: 100;
-        }
-
-        .logo {
-            font-size: 1.8rem;
-            font-weight: 700;
-            color: var(--primary);
-        }
-
-        .search-profile {
-            display: flex;
-            align-items: center;
-        }
-
-        /* User dropdown styles */
-        .user-dropdown {
-            position: relative;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-        }
-
-        .label, .username {
-            font-size: 14px; /* Make both the same size */
-            color: var(--text);
-        }
-
-        .label {
-            color: var(--text-secondary);
-            margin-right: 5px;
-        }
-
-        .username {
-            font-weight: 600;
-        }
-
-        .dropdown-menu {
-            display: none;
-            position: absolute;
-            top: 100%;
-            right: 0;
-            background-color: rgba(30, 30, 30, 0.95);
-            border-radius: var(--border-radius-sm);
-            box-shadow: var(--shadow-medium);
-            min-width: 150px;
-            z-index: 100;
-            margin-top: 10px;
-            overflow: hidden;
-        }
-
-        .dropdown-menu a {
-            display: block;
-            padding: 10px 15px;
-            color: var(--text);
-            text-decoration: none;
-            transition: all var(--transition-fast);
-        }
-
-        .dropdown-menu a:hover {
-            background-color: rgba(255, 255, 255, 0.1);
-            color: var(--primary);
-        }
     </style>
 </head>
 <body>
@@ -247,18 +290,12 @@
             <a href="{{ url_for('home') }}">Home</a>
             <a href="{{ url_for('watchlist') }}">My Watchlist</a>
             <a href="{{ url_for('moods') }}">Mood</a>
-            <a href="{{ url_for('explore') }}">Explore</a>
+            <a href="{{ url_for('explore') }}" class="active">Explore</a>
         </nav>
         <div class="search-profile">
             <div class="search-container">
                 <form action="{{ url_for('search') }}" method="GET">
                     <input type="text" name="query" placeholder="Search movies..." value="{{ query }}" required>
-                    <button type="submit">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <circle cx="11" cy="11" r="8"></circle>
-                            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                        </svg>
-                    </button>
                 </form>
             </div>
             {% if username != "Guest" %}

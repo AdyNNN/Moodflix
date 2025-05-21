@@ -282,38 +282,355 @@
         .search-container input::placeholder {
             color: rgba(255, 255, 255, 0.5);
         }
+        
+        /* Netflix-Style Similar Movies Section */
+        .similar-movies-section {
+            margin: 3rem 0;
+            position: relative;
+            padding: 0 2rem;
+        }
+        
+        .similar-movies-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+            max-width: calc(260px * 5 + 20px * 4);
+            margin-left: auto;
+            margin-right: auto;
+            width: 100%;
+            position: relative;
+        }
+        
+        .similar-movies-title {
+            color: var(--text);
+            font-size: 1.5rem;
+            font-weight: 700;
+            letter-spacing: -0.3px;
+            margin: 0;
+            padding: 0.5rem 0;
+            position: relative;
+            top: 0px;
+            transition: color var(--transition-fast);
+        }
+        
+        .similar-movies-section:hover .similar-movies-title {
+            color: var(--primary);
+        }
+        
+        .refresh-btn {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            font-weight: 500;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            transition: all var(--transition-fast);
+            position: relative;
+            top: 0px;
+            right: 0px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 0;
+        }
+        
+        .refresh-btn:hover {
+            color: var(--primary);
+        }
+        
+        .refresh-btn::after {
+            content: "↻";
+            font-size: 1.2rem;
+            margin-left: 0.3rem;
+            transition: transform var(--transition-fast);
+        }
+        
+        .refresh-btn:hover::after {
+            transform: rotate(90deg);
+        }
+        
+        .similar-movies-carousel {
+            position: relative;
+            margin-bottom: 2rem;
+            padding: 1rem 0;
+            max-width: 100%;
+            display: flex;
+            justify-content: center;
+        }
+        
+        .carousel-wrapper {
+            position: relative;
+            max-width: calc(260px * 5 + 20px * 4);
+            width: 100%;
+            display: flex;
+            align-items: center;
+        }
+        
+        .similar-movies-list {
+            display: flex;
+            gap: 20px;
+            padding: 10px 0;
+            transition: transform var(--transition-normal);
+            margin: 0 auto;
+            justify-content: center;
+            overflow-x: hidden;
+        }
+        
+        .similar-movie-card {
+            background-color: var(--card-bg);
+            border-radius: var(--border-radius-md);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            transition: all var(--transition-normal);
+            width: 260px;
+            height: 440px;
+            flex: 0 0 260px;
+            box-shadow: var(--shadow-light);
+            position: relative;
+            text-decoration: none;
+        }
+
+        .similar-movie-card:hover {
+            transform: scale(1.03);
+            box-shadow: var(--shadow-medium);
+            z-index: 2;
+        }
+
+        .similar-movie-card::after {
+            content: none;
+        }
+
+        .similar-movie-card:hover::after {
+            opacity: 0;
+        }
+
+        .similar-movie-poster {
+            width: 100%;
+            height: 70%;
+            object-fit: cover;
+            transition: transform var(--transition-normal);
+        }
+
+        .similar-movie-card:hover .similar-movie-poster {
+            transform: none;
+        }
+        
+        .similar-movie-info {
+            flex-grow: 1;
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            background: linear-gradient(to top, var(--card-bg) 0%, rgba(30, 30, 30, 0.9) 100%);
+            position: relative;
+            z-index: 2;
+        }
+        
+        .similar-movie-title {
+            color: var(--primary);
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin: 0.3rem 0;
+            height: 2.8em;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            text-align: center;
+            width: 100%;
+            transition: color var(--transition-fast);
+        }
+        
+        .similar-movie-card:hover .similar-movie-title {
+            color: #ff1a1a;
+        }
+        
+        .similar-movie-genre {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin: 0.2rem 0;
+            text-align: center;
+            width: 100%;
+            font-weight: 500;
+        }
+        
+        .similar-movie-rating {
+            font-size: 0.9rem;
+            color: var(--text-tertiary);
+            margin: 0.4rem 0 0;
+            text-align: center;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.3rem;
+        }
+        
+        .similar-movie-rating::before {
+            content: "★";
+            color: #ffc107;
+        }
+        
+        .carousel-btn {
+            background: rgba(30, 30, 30, 0.9);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: var(--button-size);
+            height: var(--button-size);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+            visibility: hidden;
+            opacity: 0;
+            pointer-events: none;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            flex-shrink: 0;
+        }
+        
+        .carousel-btn.visible {
+            visibility: visible;
+            opacity: 1;
+            pointer-events: auto;
+        }
+        
+        .carousel-btn:hover {
+            background: var(--primary);
+            transform: translateY(-50%) scale(1.1);
+            box-shadow: 0 6px 14px rgba(229, 9, 20, 0.4);
+        }
+        
+        .carousel-btn:active {
+            transform: translateY(-50%) scale(1);
+            box-shadow: 0 2px 8px rgba(229, 9, 20, 0.3);
+        }
+        
+        .carousel-btn::after {
+            content: "";
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            border-radius: 50%;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            pointer-events: none;
+        }
+        
+        .carousel-btn.prev-btn {
+            left: calc(-1 * (var(--button-size) + var(--button-margin)) + -20px);
+        }
+        
+        .carousel-btn.next-btn {
+            right: calc(-1 * (var(--button-size) + var(--button-margin) + 20px));
+        }
+        
+        .arrow {
+            pointer-events: none;
+            font-size: 1.2rem;
+            line-height: 0;
+            display: block;
+            height: 24px;
+            width: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        /* Loading state */
+        .loading-state {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+        }
+        
+        /* Navigation styles from homepage */
+        nav a {
+            color: var(--text);
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            margin: 0 0.5rem;
+            font-weight: 500;
+            transition: color var(--transition-fast);
+            position: relative;
+        }
+
+        nav a:hover {
+            color: var(--text-hover);
+        }
+
+        nav a.active {
+            color: var(--primary);
+            font-weight: 600;
+        }
+
+        nav a.active::after {
+            content: "";
+            position: absolute;
+            bottom: -5px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 5px;
+            height: 5px;
+            background-color: var(--primary);
+            border-radius: 50%;
+        }
+        
+        /* Guest link style */
+        a.guest {
+            color: var(--text);
+            text-decoration: none;
+            font-weight: 600;
+            transition: color var(--transition-fast);
+        }
+
+        a.guest:hover {
+            color: var(--primary);
+        }
     </style>
 </head>
 <body>
     <header>
-    <div class="logo">MoodFlix</div>
-    <nav>
-        <a href="{{ url_for('home') }}">Home</a>
-        <a href="{{ url_for('watchlist') }}">My Watchlist</a>
-        <a href="{{ url_for('moods') }}">Mood</a>
-        <a href="{{ url_for('explore') }}">Explore</a>
-    </nav>
-    <div class="search-profile">
-        <div class="search-container">
-            <form action="{{ url_for('search') }}" method="GET">
-                <input type="text" name="query" placeholder="Search movies..." required>
-            </form>
-        </div>
-        {% if username != "Guest" %}
-        <div class="user-dropdown" onclick="toggleDropdown()">
-            <span class="label">Logged in as</span>
-            <span class="username">{{ username }}</span>
-            <div class="dropdown-menu" id="userDropdown">
-                <a href="{{ url_for('profile') }}">View Profile</a>
-                <a href="{{ url_for('logout') }}">Logout</a>
+        <div class="logo">MoodFlix</div>
+        <nav>
+            <a href="{{ url_for('home') }}">Home</a>
+            <a href="{{ url_for('watchlist') }}">My Watchlist</a>
+            <a href="{{ url_for('moods') }}">Mood</a>
+            <a href="{{ url_for('explore') }}">Explore</a>
+        </nav>
+        <div class="search-profile">
+            <div class="search-container">
+                <form action="{{ url_for('search') }}" method="GET">
+                    <input type="text" name="query" placeholder="Search movies..." required>
+                </form>
             </div>
+            {% if username != "Guest" %}
+            <div class="user-dropdown" onclick="toggleDropdown()">
+                <span class="label">Logged in as</span>
+                <span class="username">{{ username }}</span>
+                <div class="dropdown-menu" id="userDropdown">
+                    <a href="{{ url_for('profile') }}">View Profile</a>
+                    <a href="{{ url_for('logout') }}">Logout</a>
+                </div>
+            </div>
+            {% else %}
+            <span class="label">Logged in as</span>
+            <a href="{{ url_for('signin') }}" class="guest">Guest</a>
+            {% endif %}
         </div>
-        {% else %}
-        <span class="label">Logged in as</span>
-        <a href="{{ url_for('signin') }}" class="guest">Guest</a>
-        {% endif %}
-    </div>
-</header>
+    </header>
 
     <main>
       {% if movie.trailer_url and ('youtube.com' in movie.trailer_url or 'youtu.be' in movie.trailer_url) %}
@@ -415,6 +732,41 @@
           </div>
         </div>
       {% endif %}
+      
+      <!-- Netflix-Style Similar Movies Section -->
+      <div class="similar-movies-section genre-section">
+        <div class="similar-movies-header genre-header">
+          <h2 class="similar-movies-title">Similar Movies You Might Like</h2>
+          <button id="refreshSimilarBtn" class="refresh-btn">
+            <span>Refresh</span>
+          </button>
+        </div>
+        
+        <div class="similar-movies-carousel genre-carousel">
+          <div class="carousel-wrapper">
+            <button class="carousel-btn prev-btn" id="similarPrevBtn">
+              <span class="arrow">&#10094;</span>
+            </button>
+            
+            <div id="similarMoviesList" class="similar-movies-list movie-list">
+              {% for similar_movie in similar_movies %}
+              <a href="{{ url_for('view_movie', title=similar_movie.title) }}" class="similar-movie-card movie-card">
+                <img src="{{ similar_movie.poster_url }}" alt="{{ similar_movie.title }} poster" class="similar-movie-poster movie-poster">
+                <div class="similar-movie-info movie-info-block">
+                  <h3 class="similar-movie-title movie-title">{{ similar_movie.title }}</h3>
+                  <div class="similar-movie-genre movie-genre">{{ similar_movie.genre }}</div>
+                  <div class="similar-movie-rating movie-rating">{{ similar_movie.rating }}/10</div>
+                </div>
+              </a>
+              {% endfor %}
+            </div>
+            
+            <button class="carousel-btn next-btn visible" id="similarNextBtn">
+              <span class="arrow">&#10095;</span>
+            </button>
+          </div>
+        </div>
+      </div>
     </main>
 
     {% if movie.trailer_url and ('youtube.com' in movie.trailer_url or 'youtu.be' in movie.trailer_url) %}
@@ -479,6 +831,129 @@
                 toast.classList.remove('show');
             }, 3000);
         }
+        
+        // Similar Movies Carousel and Refresh Functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            const similarMoviesList = document.getElementById('similarMoviesList');
+            const refreshSimilarBtn = document.getElementById('refreshSimilarBtn');
+            const prevBtn = document.getElementById('similarPrevBtn');
+            const nextBtn = document.getElementById('similarNextBtn');
+            
+            let currentPosition = 0;
+            const cardWidth = 260 + 20; // card width + gap
+            const visibleCards = 5; // Number of cards visible at once
+            
+            // Initialize carousel buttons visibility
+            updateCarouselButtons();
+            
+            // Handle carousel navigation
+            if (prevBtn) {
+                prevBtn.addEventListener('click', function() {
+                    if (currentPosition > 0) {
+                        currentPosition--;
+                        updateCarousel();
+                    }
+                });
+            }
+            
+            if (nextBtn) {
+                nextBtn.addEventListener('click', function() {
+                    const totalCards = similarMoviesList.children.length;
+                    if (currentPosition < totalCards - visibleCards) {
+                        currentPosition++;
+                        updateCarousel();
+                    }
+                });
+            }
+            
+            function updateCarousel() {
+                const translateX = -currentPosition * cardWidth;
+                similarMoviesList.style.transform = `translateX(${translateX}px)`;
+                updateCarouselButtons();
+            }
+            
+            function updateCarouselButtons() {
+                const totalCards = similarMoviesList.children.length;
+                
+                // Show/hide prev button
+                if (prevBtn) {
+                    if (currentPosition > 0) {
+                        prevBtn.classList.add('visible');
+                    } else {
+                        prevBtn.classList.remove('visible');
+                    }
+                }
+                
+                // Show/hide next button
+                if (nextBtn) {
+                    if (currentPosition < totalCards - visibleCards) {
+                        nextBtn.classList.add('visible');
+                    } else {
+                        nextBtn.classList.remove('visible');
+                    }
+                }
+            }
+            
+            // Refresh similar movies
+            if (refreshSimilarBtn) {
+                refreshSimilarBtn.addEventListener('click', refreshSimilarMovies);
+            }
+            
+            function refreshSimilarMovies() {
+                // Show loading state
+                similarMoviesList.innerHTML = '<div class="loading-state">Loading recommendations...</div>';
+                
+                // Reset carousel position
+                currentPosition = 0;
+                updateCarouselButtons();
+                
+                // Fetch new similar movies
+                fetch('/api/similar-movies/{{ movie.title }}')
+                    .then(response => response.json())
+                    .then(data => {
+                        // Clear the list
+                        similarMoviesList.innerHTML = '';
+                        
+                        // Add new movie cards
+                        data.forEach(movie => {
+                            const movieCard = document.createElement('a');
+                            movieCard.href = `/movie/${encodeURIComponent(movie.title)}`;
+                            movieCard.className = 'similar-movie-card movie-card';
+                            
+                            movieCard.innerHTML = `
+                                <img src="${movie.poster_url}" alt="${movie.title} poster" class="similar-movie-poster movie-poster">
+                                <div class="similar-movie-info movie-info-block">
+                                    <h3 class="similar-movie-title movie-title">${movie.title}</h3>
+                                    <div class="similar-movie-genre movie-genre">${movie.genre}</div>
+                                    <div class="similar-movie-rating movie-rating">${movie.rating}/10</div>
+                                </div>
+                            `;
+                            
+                            similarMoviesList.appendChild(movieCard);
+                        });
+                        
+                        // Update carousel buttons after adding new content
+                        updateCarouselButtons();
+                    })
+                    .catch(error => {
+                        similarMoviesList.innerHTML = '<div class="loading-state">Failed to load recommendations. Please try again.</div>';
+                        console.error('Error:', error);
+                    });
+            }
+            
+            // Set active nav link
+            document.addEventListener('DOMContentLoaded', function() {
+                const currentPath = window.location.pathname;
+                const navLinks = document.querySelectorAll('nav a');
+                
+                navLinks.forEach(link => {
+                    if (currentPath.includes('/movie/')) {
+                        // Don't highlight any nav item on movie detail pages
+                        link.classList.remove('active');
+                    }
+                });
+            });
+        });
         
         {% if username != "Guest" %}
         // Watchlist functionality

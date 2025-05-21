@@ -326,7 +326,7 @@
             display: flex;
             justify-content: center;
             flex: 1;
-            margin-left: 260px; /* Add this line to move nav links to the right */
+            margin-left: 215px; /* Add this line to move nav links to the right */
         }
 
         header {
@@ -366,7 +366,7 @@
 
         .label {
             color: var(--text-secondary);
-            margin-right: 5px;
+            margin-right: -4px;
         }
 
         .username {
@@ -448,7 +448,7 @@
             </form>
         </div>
         {% if username != "Guest" %}
-        <div class="user-dropdown" onclick="toggleDropdown()">
+        <div class="user-dropdown">
             <span class="label">Logged in as</span>
             <span class="username">{{ username }}</span>
             <div class="dropdown-menu" id="userDropdown">
@@ -584,11 +584,16 @@
                     });
             }
             
-            function toggleDropdown() {
-                const menu = document.getElementById('userDropdown');
-                menu.style.display = (menu.style.display === 'block') ? 'none' : 'block';
+            // Add event listener to user dropdown
+            const userDropdown = document.querySelector('.user-dropdown');
+            if (userDropdown) {
+                userDropdown.addEventListener('click', function() {
+                    const menu = document.getElementById('userDropdown');
+                    menu.style.display = (menu.style.display === 'block') ? 'none' : 'block';
+                });
             }
             
+            // Close dropdown when clicking outside
             window.addEventListener('click', function(e) {
                 const dropdown = document.getElementById('userDropdown');
                 if (dropdown && !e.target.closest('.user-dropdown')) {
