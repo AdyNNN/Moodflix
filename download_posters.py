@@ -3,7 +3,7 @@ import os
 import requests
 
 # === CONFIGURATION ===
-TMDB_API_KEY = "5047b2668891813cd433394e1123058f"  # 🔑 Replace with your real API key
+TMDB_API_KEY = ""  # 🔑 Replace with your real API key
 CSV_INPUT = "movies.csv"  # Use your existing CSV file
 POSTER_DIR = "static/posters"  # Local folder to store images
 os.makedirs(POSTER_DIR, exist_ok=True)

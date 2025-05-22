@@ -3,7 +3,7 @@ import requests
 import time
 
 # Your TMDb API key
-API_KEY = '5047b2668891813cd433394e1123058f'  # <-- Replace with your actual API key
+API_KEY = ''  # <-- Replace with your actual API key
 BASE_URL = 'https://api.themoviedb.org/3'
 
 # Load your movie dataset (must contain a 'title' column)
