@@ -202,6 +202,8 @@
             position: relative;
             top: 0px;
             transition: color var(--transition-fast);
+            display: flex;
+            align-items: center;
         }
         
         .similar-movies-section:hover .similar-movies-title {
@@ -538,6 +540,53 @@
         .username {
             font-weight: 600;
         }
+
+        .similarity-score {
+            font-size: 0.85rem;
+            color: #46d369;
+            font-weight: 600;
+            margin: 0.2rem 0;
+            text-align: center;
+            width: 100%;
+        }
+
+        .similar-movies-title {
+            display: flex;
+            align-items: center;
+        }
+
+        .similar-movies-title::before {
+            content: "AI";
+            font-size: 0.7rem;
+            background-color: var(--primary);
+            color: white;
+            padding: 0.2rem 0.4rem;
+            border-radius: 4px;
+            margin-right: 0.5rem;
+            font-weight: 700;
+        }
+
+        .loading-state {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 300px;
+        }
+
+        .loading-state::before {
+            content: "";
+            width: 24px;
+            height: 24px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: var(--primary);
+            animation: spin 1s ease-in-out infinite;
+            margin-right: 10px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body>
@@ -677,7 +726,7 @@
         <div class="similar-movies-header genre-header">
           <h2 class="similar-movies-title">Similar Movies You Might Like</h2>
           <button id="refreshSimilarBtn" class="refresh-btn">
-            <span>Refresh</span>
+            <span>Refresh Recommendations</span>
           </button>
         </div>
         
@@ -840,7 +889,7 @@
             
             function refreshSimilarMovies() {
                 // Show loading state
-                similarMoviesList.innerHTML = '<div class="loading-state">Loading recommendations...</div>';
+                similarMoviesList.innerHTML = '<div class="loading-state">Finding recommendations using AI...</div>';
                 
                 // Reset carousel position
                 currentPosition = 0;
@@ -859,12 +908,16 @@
                             movieCard.href = `/movie/${encodeURIComponent(movie.title)}`;
                             movieCard.className = 'similar-movie-card movie-card';
                             
+                            // Calculate similarity percentage for display
+                            const similarityPercentage = Math.round(movie.similarity_score * 100);
+                            
                             movieCard.innerHTML = `
                                 <img src="${movie.poster_url}" alt="${movie.title} poster" class="similar-movie-poster movie-poster">
                                 <div class="similar-movie-info movie-info-block">
                                     <h3 class="similar-movie-title movie-title">${movie.title}</h3>
-                                    <div class="similar-movie-genre movie-genre">${movie.genre}</div>
+                                    <div class="similar-movie-genre movie-genre">${movie.genre.split('|')[0]}</div>
                                     <div class="similar-movie-rating movie-rating">${movie.rating}/10</div>
+                                    <div class="similarity-score">${similarityPercentage}% match</div>
                                 </div>
                             `;
                             
