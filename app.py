@@ -3,6 +3,12 @@ import sqlite3
 from db import init_db, get_movies_by_genre_paginated, get_user_watchlist, add_to_watchlist, remove_from_watchlist, mark_as_watched, unmark_as_watched, get_or_create_folder, rename_folder, delete_folder, move_to_folder, get_user_id_by_username
 import random
 
+# Add these imports for the content-based filtering
+import numpy as np
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
+import re
+
 app = Flask(__name__)
 app.secret_key = "supersecret"  # Change this in production
 
@@ -152,12 +158,17 @@ def profile():
 
 # Function to get similar movies based on content-based filtering
 def get_similar_movies(movie_title, limit=5):
+    import numpy as np
+    from sklearn.feature_extraction.text import TfidfVectorizer
+    from sklearn.metrics.pairwise import cosine_similarity
+    import re
+    
     conn = sqlite3.connect("moodflix.db")
     c = conn.cursor()
     
     # Get the current movie's details
     c.execute('''
-        SELECT id, genre, "cast", description
+        SELECT id, title, genre, "cast", description
         FROM movies
         WHERE title = ?
     ''', (movie_title,))
@@ -167,7 +178,7 @@ def get_similar_movies(movie_title, limit=5):
         conn.close()
         return []
     
-    current_id, current_genre, current_cast, current_description = current_movie
+    current_id, current_title, current_genre, current_cast, current_description = current_movie
     
     # Get all other movies
     c.execute('''
@@ -179,58 +190,70 @@ def get_similar_movies(movie_title, limit=5):
     all_movies = c.fetchall()
     conn.close()
     
-    # Calculate similarity scores
+    if not all_movies:
+        return []
+    
+    # Create a list of all movies including the current one for vectorization
+    movie_data = [(current_id, current_title, current_genre, current_cast, current_description)] + [
+        (movie[0], movie[1], movie[2], movie[6], movie[3]) for movie in all_movies
+    ]
+    
+    # Clean and prepare text data
+    def clean_text(text):
+        if not text:
+            return ""
+        # Convert to lowercase and remove special characters
+        text = re.sub(r'[^\w\s]', ' ', str(text).lower())
+        # Remove extra whitespace
+        text = re.sub(r'\s+', ' ', text).strip()
+        return text
+    
+    # Create content strings for each movie by combining features
+    content_strings = []
+    for _, title, genre, cast, desc in movie_data:
+        # Clean and weight the features
+        clean_genre = clean_text(genre)
+        clean_cast = clean_text(cast)
+        clean_desc = clean_text(desc)
+        
+        # Weight features differently (genre and cast are more important than description)
+        # Repeat important features to give them more weight
+        weighted_content = (
+            f"{clean_genre} {clean_genre} {clean_genre} " +  # Genre has highest weight
+            f"{clean_cast} {clean_cast} " +                  # Cast has medium weight
+            f"{clean_desc}"                                  # Description has lowest weight
+        )
+        
+        content_strings.append(weighted_content)
+    
+    # Create TF-IDF vectors
+    tfidf_vectorizer = TfidfVectorizer(max_features=5000, stop_words='english')
+    tfidf_matrix = tfidf_vectorizer.fit_transform(content_strings)
+    
+    # Calculate cosine similarity between the current movie and all other movies
+    cosine_sim = cosine_similarity(tfidf_matrix[0:1], tfidf_matrix[1:]).flatten()
+    
+    # Get indices of movies sorted by similarity score
+    similar_indices = cosine_sim.argsort()[::-1]
+    
+    # Get the top similar movies
     similar_movies = []
-    for movie in all_movies:
-        movie_id, title, genre, description, rating, release_date, cast, runtime, poster_url, trailer_url = movie
-        
-        # Calculate similarity based on genre, cast, and description
-        similarity_score = 0
-        
-        # Genre similarity (highest weight)
-        if genre and current_genre:
-            genre_set = set(genre.lower().split('|'))
-            current_genre_set = set(current_genre.lower().split('|'))
-            genre_intersection = genre_set.intersection(current_genre_set)
-            if genre_intersection:
-                similarity_score += len(genre_intersection) * 3
-        
-        # Cast similarity (medium weight)
-        if cast and current_cast:
-            cast_set = set(cast.lower().split(','))
-            current_cast_set = set(current_cast.lower().split(','))
-            cast_intersection = cast_set.intersection(current_cast_set)
-            if cast_intersection:
-                similarity_score += len(cast_intersection) * 2
-        
-        # Description similarity (lower weight)
-        if description and current_description:
-            # Simple word overlap for description
-            desc_words = set(description.lower().split())
-            current_desc_words = set(current_description.lower().split())
-            desc_intersection = desc_words.intersection(current_desc_words)
-            if desc_intersection:
-                # Exclude common words
-                common_words = {'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'with', 'by', 'of', 'is', 'are'}
-                desc_intersection = desc_intersection - common_words
-                similarity_score += len(desc_intersection) * 0.5
-        
+    for idx in similar_indices[:limit]:
+        movie = all_movies[idx]
         similar_movies.append({
-            "title": title,
-            "genre": genre,
-            "description": description,
-            "rating": rating,
-            "release_date": release_date,
-            "cast": cast,
-            "runtime": runtime,
-            "poster_url": poster_url or "/static/posters/placeholder.jpg",
-            "trailer_url": trailer_url,
-            "similarity_score": similarity_score
+            "title": movie[1],
+            "genre": movie[2],
+            "description": movie[3],
+            "rating": movie[4],
+            "release_date": movie[5],
+            "cast": movie[6],
+            "runtime": movie[7],
+            "poster_url": movie[8] or "/static/posters/placeholder.jpg",
+            "trailer_url": movie[9],
+            "similarity_score": float(cosine_sim[idx])  # Convert numpy float to Python float
         })
     
-    # Sort by similarity score and take top 'limit'
-    similar_movies.sort(key=lambda x: x["similarity_score"], reverse=True)
-    return similar_movies[:limit]
+    return similar_movies
 
 @app.route("/movie/<title>")
 def view_movie(title):
