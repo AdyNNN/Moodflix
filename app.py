@@ -761,6 +761,13 @@ def get_movies_by_predicted_mood():
 def get_movies_by_multiple_moods():
     """API endpoint to get movies by multiple predicted moods"""
     moods_param = request.args.get("moods", "")
+    page = int(request.args.get("page", 1))
+    sort_by = request.args.get("sort_by", "title")
+    sort_order = request.args.get("order", "asc")
+    page_size = 20
+    
+    print(f"Debug - Received request with moods: {moods_param}, page: {page}, sort_by: {sort_by}, order: {sort_order}")  # Debug log
+    
     if not moods_param:
         return jsonify({"error": "Moods parameter is required"}), 400
     
@@ -774,24 +781,52 @@ def get_movies_by_multiple_moods():
     conn = sqlite3.connect("moodflix.db")
     c = conn.cursor()
     
-    # Check if predicted_mood column exists
-    c.execute("PRAGMA table_info(movies)")
-    columns = [row[1] for row in c.fetchall()]
+    # Map moods to genres for mood-based recommendations
+    mood_to_genres = {
+        "happy": ["Comedy", "Animation", "Family"],
+        "sad": ["Drama"],
+        "romantic": ["Romance"],
+        "tense": ["Thriller", "Horror", "Mystery"],
+        "excited": ["Action", "Adventure", "Sci-Fi"],
+        "relaxed": ["Drama", "Comedy", "Family"]
+    }
     
-    movies = []
+    # Collect all genres for selected moods
+    all_genres = []
+    for mood in selected_moods:
+        all_genres.extend(mood_to_genres.get(mood, []))
     
-    if "predicted_mood" in columns:
-        # Use predicted mood - create OR conditions for multiple moods
-        mood_conditions = " OR ".join([f"predicted_mood = ?" for _ in selected_moods])
+    # Remove duplicates while preserving order
+    unique_genres = list(dict.fromkeys(all_genres))
+    
+    # Calculate offset for pagination
+    offset = (page - 1) * page_size
+    
+    if unique_genres:
+        # Create genre conditions
+        genre_conditions = " OR ".join([f"genre LIKE ?" for _ in unique_genres])
+        genre_params = [f'%{genre}%' for genre in unique_genres]
         
-        c.execute(f"""
-            SELECT title, genre, description, rating, poster_url, trailer_url, predicted_mood
+        # Add sorting
+        sort_clause = f"ORDER BY {sort_by} {sort_order}"
+        if sort_by == "year":
+            sort_clause = f"ORDER BY CAST(substr(release_date, 1, 4) AS INTEGER) {sort_order}"
+        
+        query = f"""
+            SELECT DISTINCT title, genre, description, rating, poster_url, trailer_url, release_date
             FROM movies
-            WHERE ({mood_conditions}) AND rating >= 6.0
-            ORDER BY rating DESC, RANDOM()
-            LIMIT 30
-        """, selected_moods)
+            WHERE ({genre_conditions}) AND rating >= 6.0
+            {sort_clause}
+            LIMIT ? OFFSET ?
+        """
+        params = genre_params + [page_size, offset]
         
+        print(f"Debug - Executing query: {query}")  # Debug log
+        print(f"Debug - Query parameters: {params}")  # Debug log
+        
+        c.execute(query, params)
+        
+        movies = []
         for row in c.fetchall():
             movies.append({
                 "title": row[0],
@@ -800,77 +835,13 @@ def get_movies_by_multiple_moods():
                 "rating": row[3],
                 "poster_url": row[4] or "/static/posters/placeholder.jpg",
                 "trailer_url": row[5],
-                "matched_mood": row[6]
+                "release_date": row[6],
+                "matched_mood": "genre-based"
             })
     
-    # If not enough movies found with predicted moods, supplement with genre-based
-    if len(movies) < 15:
-        # Map moods to genres for fallback
-        mood_to_genres = {
-            "happy": ["Comedy", "Animation", "Family"],
-            "sad": ["Drama"],
-            "romantic": ["Romance"],
-            "tense": ["Thriller", "Horror", "Mystery"],
-            "excited": ["Action", "Adventure", "Sci-Fi"],
-            "relaxed": ["Drama", "Comedy", "Family"]
-        }
-        
-        # Collect all genres for selected moods
-        all_genres = []
-        for mood in selected_moods:
-            all_genres.extend(mood_to_genres.get(mood, []))
-        
-        # Remove duplicates while preserving order
-        unique_genres = list(dict.fromkeys(all_genres))
-        
-        if unique_genres:
-            # Create genre conditions
-            genre_conditions = " OR ".join([f"genre LIKE ?" for _ in unique_genres])
-            genre_params = [f'%{genre}%' for genre in unique_genres]
-            
-            # Get existing movie titles to avoid duplicates
-            existing_titles = {movie["title"] for movie in movies}
-            title_conditions = " AND ".join([f"title != ?" for _ in existing_titles])
-            
-            if existing_titles:
-                query = f"""
-                    SELECT title, genre, description, rating, poster_url, trailer_url
-                    FROM movies
-                    WHERE ({genre_conditions}) AND ({title_conditions}) AND rating >= 6.0
-                    ORDER BY rating DESC, RANDOM()
-                    LIMIT ?
-                """
-                params = genre_params + list(existing_titles) + [20 - len(movies)]
-            else:
-                query = f"""
-                    SELECT title, genre, description, rating, poster_url, trailer_url
-                    FROM movies
-                    WHERE ({genre_conditions}) AND rating >= 6.0
-                    ORDER BY rating DESC, RANDOM()
-                    LIMIT ?
-                """
-                params = genre_params + [20 - len(movies)]
-            
-            c.execute(query, params)
-            
-            for row in c.fetchall():
-                movies.append({
-                    "title": row[0],
-                    "genre": row[1],
-                    "description": row[2],
-                    "rating": row[3],
-                    "poster_url": row[4] or "/static/posters/placeholder.jpg",
-                    "trailer_url": row[5],
-                    "matched_mood": "genre-based"
-                })
-    
     conn.close()
-    
-    # Shuffle the final results to mix predicted and genre-based movies
-    import random
-    random.shuffle(movies)
-    
-    return jsonify(movies[:25])  # Return up to 25 movies
+    print(f"Debug - Returning {len(movies)} movies for page {page}")  # Debug log
+    return jsonify(movies)
 
 def initialize_mood_predictions():
     """Initialize mood predictions for all movies if not already done."""
@@ -906,6 +877,25 @@ def initialize_mood_predictions():
             update_movie_moods()
         else:
             print("All movies have predicted moods.")
+
+# Add this route to your app.py file
+@app.route('/api/movies/by_multiple_moods_sorted')
+def get_sorted_movies_by_moods():
+    moods = request.args.get('moods', '').split(',')
+    sort_by = request.args.get('sort_by', 'title')
+    order = request.args.get('order', 'desc')
+    
+    # Clean up moods list
+    moods = [mood.strip() for mood in moods if mood.strip()]
+    
+    if not moods:
+        return jsonify([])
+    
+    # Get sorted movies from database
+    from db import get_movies_by_multiple_moods_sorted
+    movies = get_movies_by_multiple_moods_sorted(moods, sort_by, order)
+    
+    return jsonify(movies)
 
 if __name__ == "__main__":
     app.run(debug=True)

@@ -559,3 +559,241 @@ def initialize_mood_predictions():
                 
                 conn.commit()
                 print("[DB] Fallback mood mapping complete.")
+# Add these functions to your db.py file
+
+def quick_sort_movies(movies, sort_by="title", order="desc"):
+    """
+    Sort movies using the QuickSort algorithm.
+    
+    Args:
+        movies: List of movie dictionaries
+        sort_by: Field to sort by (title, rating, year)
+        order: Sort order - "asc" for ascending, "desc" for descending
+    
+    Returns:
+        Sorted list of movies
+    """
+    if not movies:
+        return []
+    
+    # Create a copy to avoid modifying the original list
+    movies_copy = movies.copy()
+    
+    # Define compare functions for different sort options
+    def compare_by_title(a, b):
+        a_title = a.get('title', '').lower()
+        b_title = b.get('title', '').lower()
+        if order == "asc":
+            return a_title < b_title
+        else:
+            return a_title > b_title
+    
+    def compare_by_rating(a, b):
+        a_rating = float(a.get('rating', 0))
+        b_rating = float(b.get('rating', 0))
+        if order == "asc":
+            return a_rating < b_rating
+        else:
+            return a_rating > b_rating
+    
+    def compare_by_year(a, b):
+        # Extract year from release_date or use a default year
+        try:
+            a_year = int(a.get('release_date', '').split('-')[0]) if a.get('release_date') else 0
+        except (IndexError, ValueError):
+            a_year = 0
+            
+        try:
+            b_year = int(b.get('release_date', '').split('-')[0]) if b.get('release_date') else 0
+        except (IndexError, ValueError):
+            b_year = 0
+            
+        if order == "asc":
+            return a_year < b_year
+        else:
+            return a_year > b_year
+    
+    # Select the appropriate compare function
+    if sort_by == "title":
+        compare_func = compare_by_title
+    elif sort_by == "rating":
+        compare_func = compare_by_rating
+    elif sort_by == "year":
+        compare_func = compare_by_year
+    else:
+        compare_func = compare_by_title  # Default to title
+    
+    # QuickSort implementation
+    def _quick_sort(arr, low, high):
+        if low < high:
+            pivot_index = _partition(arr, low, high)
+            _quick_sort(arr, low, pivot_index - 1)
+            _quick_sort(arr, pivot_index + 1, high)
+    
+    def _partition(arr, low, high):
+        pivot = arr[high]
+        i = low - 1
+        
+        for j in range(low, high):
+            if compare_func(arr[j], pivot):
+                i += 1
+                arr[i], arr[j] = arr[j], arr[i]
+        
+        arr[i + 1], arr[high] = arr[high], arr[i + 1]
+        return i + 1
+    
+    # Execute the sort
+    _quick_sort(movies_copy, 0, len(movies_copy) - 1)
+    return movies_copy
+
+
+def get_movies_by_multiple_moods_sorted(moods, sort_by="title", order="desc", limit=20):
+    """
+    Get movies by multiple moods and sort them using QuickSort.
+    
+    Args:
+        moods: List of mood strings
+        sort_by: Field to sort by (title, rating, year)
+        order: Sort order - "asc" for ascending, "desc" for descending
+        limit: Maximum number of movies to return
+    
+    Returns:
+        Sorted list of movies matching the moods
+    """
+    if not moods:
+        return []
+    
+    conn = sqlite3.connect(DB_FILE)
+    c = conn.cursor()
+    
+    # Create placeholders for the IN clause
+    placeholders = ','.join(['?' for _ in moods])
+    
+    # First check if predicted_mood column exists
+    c.execute("PRAGMA table_info(movies)")
+    columns = [row[1] for row in c.fetchall()]
+    
+    movies = []
+    
+    if "predicted_mood" in columns:
+        # Query movies that match any of the provided moods
+        query = f'''
+            SELECT DISTINCT title, genre, description, rating, release_date, "cast", runtime, poster_url, trailer_url
+            FROM movies
+            WHERE predicted_mood IN ({placeholders})
+            AND title IS NOT NULL
+            AND title != ''
+        '''
+        
+        c.execute(query, moods)
+        rows = c.fetchall()
+        
+        # Convert to list of dictionaries
+        movies = [
+            {
+                "title": row[0],
+                "genre": row[1],
+                "description": row[2],
+                "rating": row[3],
+                "release_date": row[4],
+                "cast": row[5],
+                "runtime": row[6],
+                "poster_url": row[7] or "/static/posters/placeholder.jpg",
+                "trailer_url": row[8]
+            }
+            for row in rows
+        ]
+    
+    # If not enough movies found with predicted moods, supplement with genre-based
+    if len(movies) < 15:
+        # Map moods to genres for fallback
+        mood_to_genres = {
+            "happy": ["Comedy", "Animation", "Family"],
+            "sad": ["Drama"],
+            "romantic": ["Romance"],
+            "tense": ["Thriller", "Horror", "Mystery"],
+            "excited": ["Action", "Adventure", "Sci-Fi"],
+            "relaxed": ["Drama", "Comedy", "Family"]
+        }
+        
+        # Collect all genres for selected moods
+        all_genres = []
+        for mood in moods:
+            all_genres.extend(mood_to_genres.get(mood, []))
+        
+        # Remove duplicates while preserving order
+        unique_genres = list(dict.fromkeys(all_genres))
+        
+        if unique_genres:
+            # Create genre conditions
+            genre_conditions = " OR ".join([f"genre LIKE ?" for _ in unique_genres])
+            genre_params = [f'%{genre}%' for genre in unique_genres]
+            
+            # Get existing movie titles to avoid duplicates
+            existing_titles = {movie["title"] for movie in movies}
+            
+            if existing_titles:
+                title_conditions = " AND ".join([f"title != ?" for _ in existing_titles])
+                query = f"""
+                    SELECT title, genre, description, rating, release_date, "cast", runtime, poster_url, trailer_url
+                    FROM movies
+                    WHERE ({genre_conditions}) AND ({title_conditions})
+                    AND title IS NOT NULL AND title != ''
+                """
+                params = genre_params + list(existing_titles)
+            else:
+                query = f"""
+                    SELECT title, genre, description, rating, release_date, "cast", runtime, poster_url, trailer_url
+                    FROM movies
+                    WHERE ({genre_conditions})
+                    AND title IS NOT NULL AND title != ''
+                """
+                params = genre_params
+            
+            c.execute(query, params)
+            
+            for row in c.fetchall():
+                movies.append({
+                    "title": row[0],
+                    "genre": row[1],
+                    "description": row[2],
+                    "rating": row[3],
+                    "release_date": row[4],
+                    "cast": row[5],
+                    "runtime": row[6],
+                    "poster_url": row[7] or "/static/posters/placeholder.jpg",
+                    "trailer_url": row[8]
+                })
+    
+    conn.close()
+    
+    # Sort using QuickSort
+    sorted_movies = quick_sort_movies(movies, sort_by, order)
+    
+    # Apply limit
+    return sorted_movies[:limit]
+
+
+def get_movies_by_mood_sorted(mood, sort_by="title", order="desc", limit=20):
+    """
+    Get movies by a single mood and sort them using QuickSort.
+    
+    Args:
+        mood: Single mood string
+        sort_by: Field to sort by (title, rating, year)
+        order: Sort order - "asc" for ascending, "desc" for descending
+        limit: Maximum number of movies to return
+    
+    Returns:
+        Sorted list of movies matching the mood
+    """
+    return get_movies_by_multiple_moods_sorted([mood], sort_by, order, limit)
+
+
+# Update your existing get_movies_by_multiple_moods function to use sorting
+def get_movies_by_multiple_moods(moods, limit=20):
+    """
+    Get movies by multiple moods (backward compatibility).
+    This function maintains compatibility with existing code.
+    """
+    return get_movies_by_multiple_moods_sorted(moods, "rating", "desc", limit)
