@@ -20,6 +20,7 @@
             --shadow-light: 0 5px 10px rgba(0, 0, 0, 0.2);
             --shadow-strong: 0 15px 30px rgba(0, 0, 0, 0.4);
             --primary: #e50914;
+            --primary-hover: #f40612;
             --card-hover-bg: rgba(20, 20, 20, 0.9);
         }
         
@@ -45,6 +46,7 @@
         .mood-section {
             text-align: center;
             margin-bottom: 40px;
+            transition: all 0.5s ease;
         }
         
         .mood-grid {
@@ -57,7 +59,7 @@
         
         @media (max-width: 1200px) {
             .mood-grid {
-                grid-template-columns: repeat(4, 1fr);
+                grid-template-columns: repeat(3, 1fr);
             }
         }
         
@@ -93,6 +95,7 @@
             overflow: hidden;
             box-shadow: var(--shadow-light);
             border: 2px solid transparent;
+            transform-origin: center;
         }
         
         .mood::before {
@@ -115,7 +118,7 @@
         }
         
         .mood:hover {
-            transform: translateY(-5px);
+            transform: translateY(-10px) scale(1.05);
             box-shadow: var(--shadow-medium);
             border-color: var(--primary);
         }
@@ -126,7 +129,7 @@
         
         .mood.active {
             background-color: var(--primary);
-            transform: translateY(-5px);
+            transform: translateY(-10px) scale(1.05);
             box-shadow: var(--shadow-medium);
         }
         
@@ -140,6 +143,7 @@
         /* Recommendations section */
         .recommendations-section {
             margin-top: 3rem;
+            position: relative;
         }
         
         .recommendations-title {
@@ -430,44 +434,370 @@
         .search-container input::placeholder {
             color: rgba(255, 255, 255, 0.5);
         }
+        
+        /* Change mood button */
+        .change-mood-btn {
+            background-color: rgba(20, 20, 20, 0.7);
+            color: var(--text);
+            border: 1px solid rgba(229, 9, 20, 0.5);
+            border-radius: 4px;
+            padding: 10px 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 15px;
+        }
+
+        .change-mood-btn:hover {
+            background-color: var(--primary);
+            color: white;
+            transform: scale(1.05);
+        }
+
+        .change-mood-btn svg {
+            width: 16px;
+            height: 16px;
+        }
+        
+        /* Current mood indicator - Netflix style */
+        .mood-display-container {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            margin: 0 auto 40px;
+            max-width: 800px;
+        }
+        
+        .netflix-mood-display {
+            background: linear-gradient(to right, rgba(0, 0, 0, 0.7), rgba(20, 20, 20, 0.9), rgba(0, 0, 0, 0.7));
+            border-radius: 8px;
+            padding: 15px 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+            width: 100%;
+            max-width: 600px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .netflix-mood-display::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background: linear-gradient(to right, transparent, var(--primary), transparent);
+        }
+        
+        .netflix-mood-title {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .netflix-mood-content {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 8px;
+        }
+        
+        /* Animation for mood selection */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        @keyframes fadeOut {
+            from { opacity: 1; transform: translateY(0); }
+            to { opacity: 0; transform: translateY(-20px); }
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.5s forwards;
+        }
+        
+        .fade-out {
+            animation: fadeOut 0.5s forwards;
+        }
+        
+        /* Mood selection animation */
+        .mood {
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        
+        .mood:hover {
+            transform: translateY(-10px) scale(1.05);
+        }
+        
+        .mood.selected {
+            animation: selectMood 0.6s forwards;
+        }
+        
+        @keyframes selectMood {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1.05); }
+        }
+
+        /* Get recommendations button */
+        .get-recommendations-btn {
+            background: linear-gradient(135deg, var(--primary), var(--primary-hover));
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 15px 30px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 30px auto;
+            display: none;
+            align-items: center;
+            gap: 10px;
+            box-shadow: var(--shadow-medium);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .get-recommendations-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: var(--shadow-strong);
+            background: linear-gradient(135deg, var(--primary-hover), #ff0000);
+        }
+
+        .get-recommendations-btn.show {
+            display: inline-flex;
+        }
+
+        .get-recommendations-btn svg {
+            width: 20px;
+            height: 20px;
+        }
+
+        /* Selected moods indicator */
+        .selected-moods-container {
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        .selected-moods-label {
+            color: var(--text-secondary);
+            font-size: 1rem;
+            margin-bottom: 10px;
+        }
+
+        .selected-moods-list {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .selected-mood-tag {
+            background-color: rgba(20, 20, 20, 0.8);
+            border: 1px solid var(--primary);
+            border-radius: 20px;
+            padding: 6px 12px;
+            color: var(--text);
+            font-size: 0.9rem;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+            transition: all 0.2s ease;
+        }
+        
+        .selected-mood-tag:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
+            background-color: rgba(30, 30, 30, 0.9);
+        }
+
+        .selected-mood-tag .mood-emoji {
+            font-size: 1.1em;
+        }
+
+        /* Multiple moods in recommendations */
+        .current-moods {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        /* Mood selection states */
+        .mood.selected {
+            background-color: var(--primary);
+            border-color: var(--primary);
+            transform: translateY(-5px) scale(1.02);
+            box-shadow: var(--shadow-medium);
+        }
+
+        .mood.selected::before {
+            opacity: 0.6;
+        }
+        
+        /* Responsive adjustments for mood display */
+        @media (max-width: 768px) {
+            .mood-display-container {
+                padding: 0 20px;
+                margin-bottom: 70px;
+            }
+            
+            .change-mood-btn {
+                position: relative;
+                top: auto;
+                right: auto;
+                transform: none;
+                margin-top: 15px;
+            }
+            
+            .netflix-mood-display {
+                padding: 12px 20px;
+            }
+        }
+
+        /* Quick Add to Watchlist Button */
+        .quick-add-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 10;
+            opacity: 0;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .movie-card:hover .quick-add-btn {
+            opacity: 1;
+        }
+
+        .quick-add-btn:hover {
+            background-color: var(--primary);
+            transform: scale(1.1);
+            border-color: transparent;
+        }
+
+        .quick-add-btn svg {
+            width: 18px;
+            height: 18px;
+            stroke: white;
+            stroke-width: 2;
+            transition: all 0.2s ease;
+        }
+
+        .quick-add-btn.in-watchlist {
+            background-color: var(--primary);
+            opacity: 1;
+        }
+
+        .quick-add-btn.in-watchlist svg {
+            stroke: white;
+        }
+
+        /* Toast notification */
+        .toast-container {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+
+        .toast {
+            background-color: rgba(20, 20, 20, 0.9);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 4px;
+            margin-top: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transform: translateX(120%);
+            transition: transform 0.3s ease;
+            border-left: 4px solid var(--primary);
+        }
+
+        .toast.show {
+            transform: translateX(0);
+        }
+
+        .toast-icon {
+            color: var(--primary);
+        }
+
+        .toast-message {
+            flex: 1;
+        }
+
+        .toast-close {
+            cursor: pointer;
+            opacity: 0.7;
+            transition: opacity 0.2s ease;
+        }
+
+        .toast-close:hover {
+            opacity: 1;
+        }
     </style>
 </head>
 <body>
     <header>
-    <div class="logo">MoodFlix</div>
-    <nav>
-        <a href="{{ url_for('home') }}">Home</a>
-        <a href="{{ url_for('watchlist') }}">My Watchlist</a>
-        <a href="{{ url_for('moods') }}" class="active">Mood</a>
-        <a href="{{ url_for('explore') }}">Explore</a>
-    </nav>
-    <div class="search-profile">
-        <div class="search-container">
-            <form action="{{ url_for('search') }}" method="GET">
-                <input type="text" name="query" placeholder="Search movies..." required>
-            </form>
-        </div>
-        {% if username != "Guest" %}
-        <div class="user-dropdown">
-            <span class="label">Logged in as</span>
-            <span class="username">{{ username }}</span>
-            <div class="dropdown-menu" id="userDropdown">
-                <a href="{{ url_for('profile') }}">View Profile</a>
-                <a href="{{ url_for('logout') }}">Logout</a>
+        <div class="logo">MoodFlix</div>
+        <nav>
+            <a href="{{ url_for('home') }}">Home</a>
+            <a href="{{ url_for('watchlist') }}">My Watchlist</a>
+            <a href="{{ url_for('moods') }}" class="active">Mood</a>
+            <a href="{{ url_for('explore') }}">Explore</a>
+        </nav>
+        <div class="search-profile">
+            <div class="search-container">
+                <form action="{{ url_for('search') }}" method="GET">
+                    <input type="text" name="query" placeholder="Search movies..." required>
+                </form>
             </div>
+            {% if username != "Guest" %}
+            <div class="user-dropdown">
+                <span class="label">Logged in as</span>
+                <span class="username">{{ username }}</span>
+                <div class="dropdown-menu" id="userDropdown">
+                    <a href="{{ url_for('profile') }}">View Profile</a>
+                    <a href="{{ url_for('logout') }}">Logout</a>
+                </div>
+            </div>
+            {% else %}
+            <span class="label">Logged in as</span>
+            <a href="{{ url_for('signin') }}" class="guest">Guest</a>
+            {% endif %}
         </div>
-        {% else %}
-        <span class="label">Logged in as</span>
-        <a href="{{ url_for('signin') }}" class="guest">Guest</a>
-        {% endif %}
-    </div>
-</header>
+    </header>
 
     <main>
         <div class="content-container">
-            <section class="mood-section">
+            <section class="mood-section" id="mood-selection">
                 <h1 style="text-align: center; margin-top: 2rem;">How are you feeling today?</h1>
-                <p class="intro-text">Select a mood and we'll recommend movies that match your vibe using our intelligent recommendation system.</p>
+                <p class="intro-text">Select a mood and we'll recommend movies that match your vibe using our intelligent machine learning recommendation system.</p>
                 
                 <div class="mood-grid">
                     <div class="mood happy" data-mood="happy">
@@ -489,9 +819,37 @@
                         <span>Relaxed</span>
                     </div>
                 </div>
+
+                <div class="selected-moods-container" id="selected-moods-container" style="display: none;">
+                    <div class="selected-moods-label">Selected moods:</div>
+                    <div class="selected-moods-list" id="selected-moods-list"></div>
+                </div>
+
+                <button class="get-recommendations-btn" id="get-recommendations-btn">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="7,10 12,15 17,10"></polyline>
+                        <line x1="12" y1="15" x2="12" y2="3"></line>
+                    </svg>
+                    Get Recommendations
+                </button>
             </section>
             
             <section class="recommendations-section" id="recommendations-section" style="display: none;">
+                <div class="mood-display-container">
+                    <div class="netflix-mood-display" id="netflix-mood-display">
+                        <div class="netflix-mood-title">CURRENTLY WATCHING BY MOOD</div>
+                        <div class="netflix-mood-content" id="netflix-mood-content"></div>
+                    </div>
+                    
+                    <button class="change-mood-btn" id="change-mood-btn">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 12h18M3 12l4-4M3 12l4 4"></path>
+                        </svg>
+                        Change Mood
+                    </button>
+                </div>
+                
                 <h2 class="recommendations-title">Movies for your <span id="selected-mood" class="mood-name">mood</span></h2>
                 <div class="movie-grid" id="movie-grid"></div>
             </section>
@@ -506,82 +864,417 @@
         </div>
     </main>
     
+    <!-- Toast container for notifications -->
+    <div class="toast-container" id="toast-container"></div>
+    
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const moodButtons = document.querySelectorAll('.mood');
+            const moodSelectionSection = document.getElementById('mood-selection');
             const recommendationsSection = document.getElementById('recommendations-section');
             const movieGrid = document.getElementById('movie-grid');
             const selectedMoodSpan = document.getElementById('selected-mood');
             const loadingElement = document.getElementById('loading');
             const noResultsElement = document.getElementById('no-results');
+            const changeMoodBtn = document.getElementById('change-mood-btn');
+            const getRecommendationsBtn = document.getElementById('get-recommendations-btn');
+            const selectedMoodsContainer = document.getElementById('selected-moods-container');
+            const selectedMoodsList = document.getElementById('selected-moods-list');
+            const netflixMoodContent = document.getElementById('netflix-mood-content');
+            const toastContainer = document.getElementById('toast-container');
+            
+            let selectedMoods = [];
+            let userWatchlist = new Set(); // Store movie titles in user's watchlist
+            
+            // Mood emojis mapping
+            const moodEmojis = {
+                'happy': '😊',
+                'sad': '😢',
+                'romantic': '💕',
+                'tense': '😰',
+                'excited': '🤩',
+                'relaxed': '😌'
+            };
             
             // Add click event to each mood button
             moodButtons.forEach(button => {
                 button.addEventListener('click', function() {
-                    // Remove active class from all buttons
-                    moodButtons.forEach(btn => btn.classList.remove('active'));
-                    
-                    // Add active class to clicked button
-                    this.classList.add('active');
-                    
                     const mood = this.getAttribute('data-mood');
-                    selectedMoodSpan.textContent = mood;
                     
-                    // Show loading
-                    loadingElement.style.display = 'block';
-                    recommendationsSection.style.display = 'none';
-                    noResultsElement.style.display = 'none';
-                    movieGrid.innerHTML = '';
+                    if (this.classList.contains('selected')) {
+                        // Deselect mood
+                        this.classList.remove('selected');
+                        selectedMoods = selectedMoods.filter(m => m !== mood);
+                    } else {
+                        // Select mood
+                        this.classList.add('selected');
+                        selectedMoods.push(mood);
+                    }
                     
-                    // Fetch movie recommendations
-                    fetchMoviesByMood(mood);
+                    updateSelectedMoodsDisplay();
+                    updateRecommendationButton();
                 });
             });
             
-            // Function to fetch movies by mood
-            function fetchMoviesByMood(mood) {
-                fetch(`/api/movies/by_mood?mood=${mood}`)
-                    .then(response => response.json())
-                    .then(movies => {
-                        // Hide loading
-                        loadingElement.style.display = 'none';
-                        
-                        if (movies.length === 0) {
-                            noResultsElement.style.display = 'block';
-                            return;
-                        }
-                        
-                        // Display recommendations
-                        recommendationsSection.style.display = 'block';
-                        
-                        // Clear previous results
-                        movieGrid.innerHTML = '';
-                        
-                        // Add movie cards - EXACTLY like homepage
-                        movies.forEach(movie => {
-                            const cardLink = document.createElement('a');
-                            cardLink.href = `/movie/${encodeURIComponent(movie.title)}`;
-                            cardLink.className = 'movie-card-link';
+            // Update selected moods display
+            function updateSelectedMoodsDisplay() {
+                if (selectedMoods.length === 0) {
+                    selectedMoodsContainer.style.display = 'none';
+                    return;
+                }
+                
+                selectedMoodsContainer.style.display = 'block';
+                selectedMoodsList.innerHTML = '';
+                
+                selectedMoods.forEach(mood => {
+                    const tag = document.createElement('div');
+                    tag.className = 'selected-mood-tag';
+                    tag.innerHTML = `
+                        <span class="mood-emoji">${moodEmojis[mood]}</span>
+                        <span>${mood.charAt(0).toUpperCase() + mood.slice(1)}</span>
+                    `;
+                    selectedMoodsList.appendChild(tag);
+                });
+            }
+            
+            // Update recommendation button visibility
+            function updateRecommendationButton() {
+                if (selectedMoods.length > 0) {
+                    getRecommendationsBtn.classList.add('show');
+                } else {
+                    getRecommendationsBtn.classList.remove('show');
+                }
+            }
+            
+            // Get recommendations button click
+            getRecommendationsBtn.addEventListener('click', function() {
+                if (selectedMoods.length === 0) return;
+                
+                // Update display text
+                if (selectedMoods.length === 1) {
+                    selectedMoodSpan.textContent = selectedMoods[0];
+                } else {
+                    selectedMoodSpan.textContent = selectedMoods.join(', ');
+                }
+                
+                // Show loading
+                loadingElement.style.display = 'block';
+                recommendationsSection.style.display = 'none';
+                noResultsElement.style.display = 'none';
+                movieGrid.innerHTML = '';
+                
+                // Hide mood selection with animation
+                moodSelectionSection.classList.add('fade-out');
+                
+                setTimeout(() => {
+                    moodSelectionSection.style.display = 'none';
+                    moodSelectionSection.classList.remove('fade-out');
+                    
+                    // Fetch movie recommendations
+                    fetchMoviesByMoods(selectedMoods);
+                }, 500);
+            });
+            
+            // Change mood button
+            changeMoodBtn.addEventListener('click', function() {
+                // Hide recommendations with animation
+                recommendationsSection.classList.add('fade-out');
+                
+                setTimeout(() => {
+                    recommendationsSection.style.display = 'none';
+                    recommendationsSection.classList.remove('fade-out');
+                    
+                    // Show mood selection with animation
+                    moodSelectionSection.style.display = 'block';
+                    moodSelectionSection.classList.add('fade-in');
+                    
+                    setTimeout(() => {
+                        moodSelectionSection.classList.remove('fade-in');
+                    }, 500);
+                }, 500);
+            });
+            
+            // Function to fetch movies by multiple moods
+            function fetchMoviesByMoods(moods) {
+                const moodsParam = moods.join(',');
+                
+                // First, fetch user's watchlist to know which movies are already in it
+                fetchUserWatchlist().then(() => {
+                    // Then fetch movie recommendations
+                    fetch(`/api/movies/by_multiple_moods?moods=${encodeURIComponent(moodsParam)}`)
+                        .then(response => response.json())
+                        .then(movies => {
+                            // Hide loading
+                            loadingElement.style.display = 'none';
                             
-                            cardLink.innerHTML = `
-                                <div class="movie-card">
-                                    <img src="${movie.poster_url}" alt="${movie.title} poster" class="movie-poster" />
-                                    <div class="movie-info-block">
-                                        <div class="movie-title text-center">${movie.title}</div>
-                                        <p class="movie-genre text-center">${movie.genre}</p>
-                                        <p class="movie-rating text-center">${movie.rating}/10</p>
+                            if (movies.length === 0) {
+                                noResultsElement.style.display = 'block';
+                                return;
+                            }
+                            
+                            // Display recommendations
+                            recommendationsSection.style.display = 'block';
+                            recommendationsSection.classList.add('fade-in');
+                            
+                            // Update Netflix-style mood display
+                            updateNetflixMoodDisplay();
+                            
+                            setTimeout(() => {
+                                recommendationsSection.classList.remove('fade-in');
+                            }, 500);
+                            
+                            // Clear previous results
+                            movieGrid.innerHTML = '';
+                            
+                            // Add movie cards
+                            movies.forEach(movie => {
+                                const cardContainer = document.createElement('div');
+                                cardContainer.className = 'movie-card-container';
+                                
+                                const cardLink = document.createElement('a');
+                                cardLink.href = `/movie/${encodeURIComponent(movie.title)}`;
+                                cardLink.className = 'movie-card-link';
+                                
+                                // Check if movie is in watchlist
+                                const inWatchlist = userWatchlist.has(movie.title);
+                                
+                                cardLink.innerHTML = `
+                                    <div class="movie-card">
+                                        <img src="${movie.poster_url}" alt="${movie.title} poster" class="movie-poster" />
+                                        <div class="movie-info-block">
+                                            <div class="movie-title text-center">${movie.title}</div>
+                                            <p class="movie-genre text-center">${movie.genre}</p>
+                                            <p class="movie-rating text-center">${movie.rating}/10</p>
+                                        </div>
+                                        <button class="quick-add-btn ${inWatchlist ? 'in-watchlist' : ''}" data-movie="${movie.title}" title="${inWatchlist ? 'Remove from watchlist' : 'Add to watchlist'}">
+                                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                ${inWatchlist ? 
+                                                    '<path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"></path>' : 
+                                                    '<path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline>'}
+                                            </svg>
+                                        </button>
                                     </div>
-                                </div>
-                            `;
+                                `;
+                                
+                                movieGrid.appendChild(cardLink);
+                            });
                             
-                            movieGrid.appendChild(cardLink);
+                            // Add event listeners to quick add buttons
+                            setupQuickAddButtons();
+                        })
+                        .catch(error => {
+                            console.error('Error fetching movies:', error);
+                            loadingElement.style.display = 'none';
+                            noResultsElement.style.display = 'block';
                         });
-                    })
-                    .catch(error => {
-                        console.error('Error fetching movies:', error);
-                        loadingElement.style.display = 'none';
-                        noResultsElement.style.display = 'block';
+                });
+            }
+            
+            // Fetch user's watchlist
+            function fetchUserWatchlist() {
+                // Only fetch if user is logged in
+                if (document.querySelector('.username')) {
+                    return fetch('/api/watchlist/get')
+                        .then(response => {
+                            if (!response.ok) {
+                                throw new Error('Failed to fetch watchlist');
+                            }
+                            return response.json();
+                        })
+                        .then(data => {
+                            userWatchlist.clear();
+                            if (data.watchlist) {
+                                // Extract movie titles from watchlist
+                                data.watchlist.forEach(folder => {
+                                    folder.movies.forEach(movie => {
+                                        userWatchlist.add(movie.title);
+                                    });
+                                });
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error fetching watchlist:', error);
+                            return Promise.resolve(); // Continue even if watchlist fetch fails
+                        });
+                } else {
+                    return Promise.resolve(); // User not logged in, resolve immediately
+                }
+            }
+            
+            // Setup quick add buttons
+            function setupQuickAddButtons() {
+                const quickAddButtons = document.querySelectorAll('.quick-add-btn');
+                
+                quickAddButtons.forEach(button => {
+                    // Stop propagation to prevent navigating to movie page when clicking the button
+                    button.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        
+                        const movieTitle = this.getAttribute('data-movie');
+                        const isInWatchlist = this.classList.contains('in-watchlist');
+                        
+                        if (isInWatchlist) {
+                            // Remove from watchlist
+                            removeFromWatchlist(movieTitle, this);
+                        } else {
+                            // Add to watchlist
+                            addToWatchlist(movieTitle, this);
+                        }
                     });
+                });
+            }
+            
+            // Add movie to watchlist
+            function addToWatchlist(movieTitle, buttonElement) {
+                // Check if user is logged in
+                if (!document.querySelector('.username')) {
+                    showToast('Please sign in to add movies to your watchlist', 'error');
+                    return;
+                }
+                
+                fetch('/api/watchlist/add', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        movie_title: movieTitle
+                    })
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Failed to add movie to watchlist');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.success) {
+                        // Update button state
+                        buttonElement.classList.add('in-watchlist');
+                        buttonElement.setAttribute('title', 'Remove from watchlist');
+                        buttonElement.innerHTML = `
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M9 11l3 3L22 4"></path>
+                                <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"></path>
+                            </svg>
+                        `;
+                        
+                        // Add to local watchlist set
+                        userWatchlist.add(movieTitle);
+                        
+                        // Show success toast
+                        showToast(`"${movieTitle}" added to your watchlist`, 'success');
+                    } else {
+                        showToast(data.message || 'Failed to add movie to watchlist', 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error adding to watchlist:', error);
+                    showToast('Error adding movie to watchlist', 'error');
+                });
+            }
+            
+            // Remove movie from watchlist
+            function removeFromWatchlist(movieTitle, buttonElement) {
+                fetch('/api/watchlist/remove', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        movie_title: movieTitle
+                    })
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Failed to remove movie from watchlist');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.success) {
+                        // Update button state
+                        buttonElement.classList.remove('in-watchlist');
+                        buttonElement.setAttribute('title', 'Add to watchlist');
+                        buttonElement.innerHTML = `
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"></path>
+                                <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                                <polyline points="7 3 7 8 15 8"></polyline>
+                            </svg>
+                        `;
+                        
+                        // Remove from local watchlist set
+                        userWatchlist.delete(movieTitle);
+                        
+                        // Show success toast
+                        showToast(`"${movieTitle}" removed from your watchlist`, 'success');
+                    } else {
+                        showToast(data.message || 'Failed to remove movie from watchlist', 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error removing from watchlist:', error);
+                    showToast('Error removing movie from watchlist', 'error');
+                });
+            }
+            
+            // Show toast notification
+            function showToast(message, type = 'success') {
+                const toast = document.createElement('div');
+                toast.className = 'toast';
+                
+                const icon = type === 'success' ? 
+                    '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="toast-icon"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>' : 
+                    '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="toast-icon"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>';
+                
+                toast.innerHTML = `
+                    ${icon}
+                    <span class="toast-message">${message}</span>
+                    <span class="toast-close">×</span>
+                `;
+                
+                toastContainer.appendChild(toast);
+                
+                // Show toast with animation
+                setTimeout(() => {
+                    toast.classList.add('show');
+                }, 10);
+                
+                // Auto-hide toast after 3 seconds
+                const hideTimeout = setTimeout(() => {
+                    hideToast(toast);
+                }, 3000);
+                
+                // Close button click
+                toast.querySelector('.toast-close').addEventListener('click', () => {
+                    clearTimeout(hideTimeout);
+                    hideToast(toast);
+                });
+            }
+            
+            // Hide toast notification
+            function hideToast(toast) {
+                toast.classList.remove('show');
+                setTimeout(() => {
+                    toast.remove();
+                }, 300);
+            }
+            
+            // Update Netflix-style mood display
+            function updateNetflixMoodDisplay() {
+                netflixMoodContent.innerHTML = '';
+                
+                selectedMoods.forEach(mood => {
+                    const tag = document.createElement('div');
+                    tag.className = 'selected-mood-tag';
+                    tag.innerHTML = `
+                        <span class="mood-emoji">${moodEmojis[mood]}</span>
+                        <span>${mood.charAt(0).toUpperCase() + mood.slice(1)}</span>
+                    `;
+                    netflixMoodContent.appendChild(tag);
+                });
             }
             
             // Add event listener to user dropdown
@@ -599,6 +1292,25 @@
                 if (dropdown && !e.target.closest('.user-dropdown')) {
                     dropdown.style.display = 'none';
                 }
+            });
+            
+            // Add hover effects to mood buttons
+            moodButtons.forEach(button => {
+                button.addEventListener('mouseenter', function() {
+                    if (!this.classList.contains('selected')) {
+                        this.style.transform = 'translateY(-10px) scale(1.05)';
+                        this.style.boxShadow = '0 15px 30px rgba(0, 0, 0, 0.4)';
+                        this.style.borderColor = '#e50914';
+                    }
+                });
+                
+                button.addEventListener('mouseleave', function() {
+                    if (!this.classList.contains('selected')) {
+                        this.style.transform = '';
+                        this.style.boxShadow = '';
+                        this.style.borderColor = 'transparent';
+                    }
+                });
             });
         });
     </script>
