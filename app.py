@@ -9,12 +9,22 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 import re
 
+# Add these imports at the top of the file, after the existing imports
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.model_selection import train_test_split
+import numpy as np
+import pickle
+import os
+
 app = Flask(__name__)
 app.secret_key = "supersecret"  # Change this in production
 
 @app.route("/")
 def home():
     init_db()
+    # Add this line to initialize mood predictions when the app starts
+    initialize_mood_predictions()
     username = session.get("username", "Guest")
     
     # Get featured movies with YouTube trailers for the header (randomly selected)
@@ -72,18 +82,58 @@ def search():
     if not query:
         return render_template("search_results.html", movies=[], query="", username=username)
     
-    # Search for movies matching the query
-    conn = sqlite3.connect("moodflix.db")
-    c = conn.cursor()
-    
-    # Search in title, genre, cast, and description
-    c.execute('''
-        SELECT title, genre, description, rating, release_date, "cast", runtime, poster_url, trailer_url
-        FROM movies
-        WHERE title LIKE ? OR genre LIKE ? OR "cast" LIKE ? OR description LIKE ?
-        ORDER BY rating DESC
-        LIMIT 50
-    ''', (f'%{query}%', f'%{query}%', f'%{query}%', f'%{query}%'))
+    # Check if query is a mood
+    moods = ["happy", "sad", "romantic", "tense", "excited", "relaxed"]
+    if query.lower() in moods:
+        # Search by mood
+        conn = sqlite3.connect("moodflix.db")
+        c = conn.cursor()
+        
+        # Check if predicted_mood column exists
+        c.execute("PRAGMA table_info(movies)")
+        columns = [row[1] for row in c.fetchall()]
+        
+        if "predicted_mood" in columns:
+            # Use predicted mood
+            c.execute("""
+                SELECT title, genre, description, rating, release_date, "cast", runtime, poster_url, trailer_url
+                FROM movies
+                WHERE predicted_mood = ?
+                ORDER BY rating DESC
+                LIMIT 50
+            """, (query.lower(),))
+        else:
+            # Fall back to genre-based mood mapping
+            mood_to_genres = {
+                "happy": ["Comedy", "Animation", "Family"],
+                "sad": ["Drama"],
+                "romantic": ["Romance"],
+                "tense": ["Thriller", "Horror", "Mystery"],
+                "excited": ["Action", "Adventure", "Sci-Fi"],
+                "relaxed": ["Drama", "Comedy", "Family"]
+            }
+            
+            genres = mood_to_genres.get(query.lower(), ["Drama"])
+            genre_conditions = " OR ".join([f"genre LIKE '%{genre}%'" for genre in genres])
+            
+            c.execute(f"""
+                SELECT title, genre, description, rating, release_date, "cast", runtime, poster_url, trailer_url
+                FROM movies
+                WHERE ({genre_conditions})
+                ORDER BY rating DESC
+                LIMIT 50
+            """)
+    else:
+        # Regular search in title, genre, cast, and description
+        conn = sqlite3.connect("moodflix.db")
+        c = conn.cursor()
+        c.execute('''
+            SELECT title, genre, description, rating, release_date, "cast", runtime, poster_url, trailer_url
+            FROM movies
+            WHERE title LIKE ? OR genre LIKE ? OR "cast" LIKE ? OR description LIKE ?
+            ORDER BY rating DESC
+            LIMIT 50
+        ''', (f'%{query}%', f'%{query}%', f'%{query}%', f'%{query}%'))
     
     movies = []
     for row in c.fetchall():
@@ -342,6 +392,14 @@ def watchlist():
     watchlist_data = get_user_watchlist(username)
     return render_template("watchlist.html", username=username, watchlist=watchlist_data)
 
+@app.route("/api/watchlist/get")
+def api_get_watchlist():
+    if session.get("username", "Guest") == "Guest":
+        return jsonify({"success": False, "message": "Please sign in first"}), 401
+    
+    watchlist_data = get_user_watchlist(session["username"])
+    return jsonify({"success": True, "watchlist": watchlist_data})
+
 @app.route("/api/watchlist/add", methods=["POST"])
 def api_add_to_watchlist():
     if session.get("username", "Guest") == "Guest":
@@ -541,6 +599,313 @@ def get_movies_by_mood():
     
     conn.close()
     return jsonify(movies)
+
+# Add these new routes and functions after the existing /api/movies/by_mood route
+@app.route("/train_mood_classifier")
+def train_mood_classifier():
+    """Admin route to train the mood classifier model"""
+    # Only allow admins to train the model
+    if session.get("username", "Guest") != "admin":
+        return "Unauthorized", 401
+    
+    # Get movie data from database
+    conn = sqlite3.connect("moodflix.db")
+    c = conn.cursor()
+    c.execute("SELECT description, genre FROM movies WHERE description IS NOT NULL AND description != ''")
+    data = c.fetchall()
+    conn.close()
+    
+    if len(data) < 50:  # Ensure we have enough data
+        return "Not enough movie data to train model", 400
+    
+    descriptions = [row[0] for row in data]
+    genres = [row[1] for row in data]
+    
+    # Map genres to moods (simplified mapping)
+    mood_mapping = {
+        "Comedy": "happy",
+        "Animation": "happy",
+        "Family": "happy",
+        "Drama": "sad",
+        "Romance": "romantic",
+        "Thriller": "tense",
+        "Horror": "tense",
+        "Mystery": "tense",
+        "Action": "excited",
+        "Adventure": "excited",
+        "Sci-Fi": "excited"
+    }
+    
+    # Assign moods based on primary genre
+    moods = []
+    for genre_list in genres:
+        primary_genre = genre_list.split('|')[0].strip() if genre_list else "Drama"
+        mood = mood_mapping.get(primary_genre, "relaxed")  # Default to relaxed
+        moods.append(mood)
+    
+    # Create and train the model
+    vectorizer = TfidfVectorizer(max_features=5000, stop_words='english')
+    X = vectorizer.fit_transform(descriptions)
+    
+    # Split data for training
+    X_train, X_test, y_train, y_test = train_test_split(X, moods, test_size=0.2, random_state=42)
+    
+    # Train RandomForest classifier
+    clf = RandomForestClassifier(n_estimators=100, random_state=42)
+    clf.fit(X_train, y_train)
+    
+    # Save the model and vectorizer
+    with open('mood_classifier.pkl', 'wb') as f:
+        pickle.dump((clf, vectorizer), f)
+    
+    # Test accuracy
+    accuracy = clf.score(X_test, y_test)
+    
+    # Update movie database with predicted moods
+    update_movie_moods()
+    
+    return f"Model trained successfully with accuracy: {accuracy:.2f}"
+
+def update_movie_moods():
+    """Update the database with predicted moods for all movies"""
+    # Check if model exists
+    if not os.path.exists('mood_classifier.pkl'):
+        return False
+    
+    # Load the model
+    with open('mood_classifier.pkl', 'rb') as f:
+        clf, vectorizer = pickle.load(f)
+    
+    # Get all movies
+    conn = sqlite3.connect("moodflix.db")
+    c = conn.cursor()
+    
+    # Check if mood column exists, if not add it
+    c.execute("PRAGMA table_info(movies)")
+    columns = [row[1] for row in c.fetchall()]
+    if "predicted_mood" not in columns:
+        c.execute("ALTER TABLE movies ADD COLUMN predicted_mood TEXT")
+    
+    # Get movies without predicted moods
+    c.execute("SELECT id, description FROM movies WHERE description IS NOT NULL AND description != ''")
+    movies = c.fetchall()
+    
+    # Predict moods and update database
+    for movie_id, description in movies:
+        if description:
+            # Predict mood
+            X = vectorizer.transform([description])
+            predicted_mood = clf.predict(X)[0]
+            
+            # Update database
+            c.execute("UPDATE movies SET predicted_mood = ? WHERE id = ?", (predicted_mood, movie_id))
+    
+    conn.commit()
+    conn.close()
+    return True
+
+@app.route("/api/movies/by_predicted_mood")
+def get_movies_by_predicted_mood():
+    """API endpoint to get movies by their predicted mood"""
+    mood = request.args.get("mood", "")
+    if not mood:
+        return jsonify({"error": "Mood parameter is required"}), 400
+    
+    # Get movies with the predicted mood
+    conn = sqlite3.connect("moodflix.db")
+    c = conn.cursor()
+    
+    # Check if predicted_mood column exists
+    c.execute("PRAGMA table_info(movies)")
+    columns = [row[1] for row in c.fetchall()]
+    
+    if "predicted_mood" not in columns:
+        # If column doesn't exist, fall back to genre-based mood selection
+        return get_movies_by_mood()
+    
+    # Get movies with the predicted mood
+    c.execute("""
+        SELECT title, genre, description, rating, poster_url, trailer_url
+        FROM movies
+        WHERE predicted_mood = ? AND rating >= 6.0
+        ORDER BY RANDOM()
+        LIMIT 20
+    """, (mood,))
+    
+    movies = []
+    for row in c.fetchall():
+        movies.append({
+            "title": row[0],
+            "genre": row[1],
+            "description": row[2],
+            "rating": row[3],
+            "poster_url": row[4] or "/static/posters/placeholder.jpg",
+            "trailer_url": row[5]
+        })
+    
+    conn.close()
+    
+    # If not enough movies found with predicted mood, supplement with genre-based
+    if len(movies) < 10:
+        genre_based_movies = get_movies_by_mood().json
+        # Add non-duplicate movies
+        existing_titles = {movie["title"] for movie in movies}
+        for movie in genre_based_movies:
+            if movie["title"] not in existing_titles and len(movies) < 20:
+                movies.append(movie)
+                existing_titles.add(movie["title"])
+    
+    return jsonify(movies)
+
+@app.route("/api/movies/by_multiple_moods")
+def get_movies_by_multiple_moods():
+    """API endpoint to get movies by multiple predicted moods"""
+    moods_param = request.args.get("moods", "")
+    if not moods_param:
+        return jsonify({"error": "Moods parameter is required"}), 400
+    
+    # Parse the comma-separated moods
+    selected_moods = [mood.strip().lower() for mood in moods_param.split(',')]
+    
+    if not selected_moods:
+        return jsonify({"error": "At least one mood is required"}), 400
+    
+    # Get movies with any of the predicted moods
+    conn = sqlite3.connect("moodflix.db")
+    c = conn.cursor()
+    
+    # Check if predicted_mood column exists
+    c.execute("PRAGMA table_info(movies)")
+    columns = [row[1] for row in c.fetchall()]
+    
+    movies = []
+    
+    if "predicted_mood" in columns:
+        # Use predicted mood - create OR conditions for multiple moods
+        mood_conditions = " OR ".join([f"predicted_mood = ?" for _ in selected_moods])
+        
+        c.execute(f"""
+            SELECT title, genre, description, rating, poster_url, trailer_url, predicted_mood
+            FROM movies
+            WHERE ({mood_conditions}) AND rating >= 6.0
+            ORDER BY rating DESC, RANDOM()
+            LIMIT 30
+        """, selected_moods)
+        
+        for row in c.fetchall():
+            movies.append({
+                "title": row[0],
+                "genre": row[1],
+                "description": row[2],
+                "rating": row[3],
+                "poster_url": row[4] or "/static/posters/placeholder.jpg",
+                "trailer_url": row[5],
+                "matched_mood": row[6]
+            })
+    
+    # If not enough movies found with predicted moods, supplement with genre-based
+    if len(movies) < 15:
+        # Map moods to genres for fallback
+        mood_to_genres = {
+            "happy": ["Comedy", "Animation", "Family"],
+            "sad": ["Drama"],
+            "romantic": ["Romance"],
+            "tense": ["Thriller", "Horror", "Mystery"],
+            "excited": ["Action", "Adventure", "Sci-Fi"],
+            "relaxed": ["Drama", "Comedy", "Family"]
+        }
+        
+        # Collect all genres for selected moods
+        all_genres = []
+        for mood in selected_moods:
+            all_genres.extend(mood_to_genres.get(mood, []))
+        
+        # Remove duplicates while preserving order
+        unique_genres = list(dict.fromkeys(all_genres))
+        
+        if unique_genres:
+            # Create genre conditions
+            genre_conditions = " OR ".join([f"genre LIKE ?" for _ in unique_genres])
+            genre_params = [f'%{genre}%' for genre in unique_genres]
+            
+            # Get existing movie titles to avoid duplicates
+            existing_titles = {movie["title"] for movie in movies}
+            title_conditions = " AND ".join([f"title != ?" for _ in existing_titles])
+            
+            if existing_titles:
+                query = f"""
+                    SELECT title, genre, description, rating, poster_url, trailer_url
+                    FROM movies
+                    WHERE ({genre_conditions}) AND ({title_conditions}) AND rating >= 6.0
+                    ORDER BY rating DESC, RANDOM()
+                    LIMIT ?
+                """
+                params = genre_params + list(existing_titles) + [20 - len(movies)]
+            else:
+                query = f"""
+                    SELECT title, genre, description, rating, poster_url, trailer_url
+                    FROM movies
+                    WHERE ({genre_conditions}) AND rating >= 6.0
+                    ORDER BY rating DESC, RANDOM()
+                    LIMIT ?
+                """
+                params = genre_params + [20 - len(movies)]
+            
+            c.execute(query, params)
+            
+            for row in c.fetchall():
+                movies.append({
+                    "title": row[0],
+                    "genre": row[1],
+                    "description": row[2],
+                    "rating": row[3],
+                    "poster_url": row[4] or "/static/posters/placeholder.jpg",
+                    "trailer_url": row[5],
+                    "matched_mood": "genre-based"
+                })
+    
+    conn.close()
+    
+    # Shuffle the final results to mix predicted and genre-based movies
+    import random
+    random.shuffle(movies)
+    
+    return jsonify(movies[:25])  # Return up to 25 movies
+
+def initialize_mood_predictions():
+    """Initialize mood predictions for all movies if not already done."""
+    # Check if the mood classifier model exists
+    if not os.path.exists('mood_classifier.pkl'):
+        print("Mood classifier model not found. Training...")
+        # If the model doesn't exist, train it
+        # Note: You might want to restrict this to an admin route in production
+        train_mood_classifier()
+    
+    # Check if the predicted_mood column exists in the movies table
+    conn = sqlite3.connect("moodflix.db")
+    c = conn.cursor()
+    c.execute("PRAGMA table_info(movies)")
+    columns = [row[1] for row in c.fetchall()]
+    conn.close()
+    
+    if "predicted_mood" not in columns:
+        print("predicted_mood column not found. Creating and populating...")
+        # If the column doesn't exist, add it and populate it
+        update_movie_moods()
+    else:
+        print("predicted_mood column found. Checking for unpredicted movies...")
+        # Check if there are any movies with NULL predicted_mood
+        conn = sqlite3.connect("moodflix.db")
+        c = conn.cursor()
+        c.execute("SELECT COUNT(*) FROM movies WHERE predicted_mood IS NULL")
+        count = c.fetchone()[0]
+        conn.close()
+        
+        if count > 0:
+            print(f"Found {count} movies with NULL predicted_mood. Updating...")
+            update_movie_moods()
+        else:
+            print("All movies have predicted moods.")
 
 if __name__ == "__main__":
     app.run(debug=True)

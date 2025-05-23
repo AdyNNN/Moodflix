@@ -482,3 +482,80 @@ def move_to_folder(username, movie_title, folder_name):
         return False
     finally:
         conn.close()
+
+# Add this function to the db.py file, after the existing functions
+
+def initialize_mood_predictions():
+    """Initialize the predicted_mood column in the movies table"""
+    with sqlite3.connect(DB_FILE) as conn:
+        c = conn.cursor()
+        
+        # Check if predicted_mood column exists
+        c.execute("PRAGMA table_info(movies)")
+        columns = [row[1] for row in c.fetchall()]
+        
+        if "predicted_mood" not in columns:
+            print("[DB] Adding predicted_mood column to movies table...")
+            c.execute("ALTER TABLE movies ADD COLUMN predicted_mood TEXT")
+            conn.commit()
+            
+            # Try to load and use the mood classifier if it exists
+            try:
+                import pickle
+                from sklearn.feature_extraction.text import TfidfVectorizer
+                import os
+                
+                if os.path.exists('mood_classifier.pkl'):
+                    print("[DB] Found mood classifier model, predicting moods...")
+                    with open('mood_classifier.pkl', 'rb') as f:
+                        clf, vectorizer = pickle.load(f)
+                    
+                    # Get movies without predicted moods
+                    c.execute("SELECT id, description FROM movies WHERE description IS NOT NULL AND description != ''")
+                    movies = c.fetchall()
+                    
+                    # Predict moods and update database
+                    for movie_id, description in movies:
+                        if description:
+                            # Predict mood
+                            X = vectorizer.transform([description])
+                            predicted_mood = clf.predict(X)[0]
+                            
+                            # Update database
+                            c.execute("UPDATE movies SET predicted_mood = ? WHERE id = ?", (predicted_mood, movie_id))
+                    
+                    conn.commit()
+                    print("[DB] Mood predictions complete.")
+                else:
+                    print("[DB] No mood classifier model found. Run /train_mood_classifier to create one.")
+            except Exception as e:
+                print(f"[DB] Error initializing mood predictions: {e}")
+                # If prediction fails, use genre-based mood mapping as fallback
+                print("[DB] Using genre-based mood mapping as fallback...")
+                
+                # Simple genre to mood mapping
+                mood_mapping = {
+                    "Comedy": "happy",
+                    "Animation": "happy",
+                    "Family": "happy",
+                    "Drama": "sad",
+                    "Romance": "romantic",
+                    "Thriller": "tense",
+                    "Horror": "tense",
+                    "Mystery": "tense",
+                    "Action": "excited",
+                    "Adventure": "excited",
+                    "Sci-Fi": "excited"
+                }
+                
+                c.execute("SELECT id, genre FROM movies")
+                movies = c.fetchall()
+                
+                for movie_id, genre_list in movies:
+                    if genre_list:
+                        primary_genre = genre_list.split('|')[0].strip()
+                        mood = mood_mapping.get(primary_genre, "relaxed")  # Default to relaxed
+                        c.execute("UPDATE movies SET predicted_mood = ? WHERE id = ?", (mood, movie_id))
+                
+                conn.commit()
+                print("[DB] Fallback mood mapping complete.")
