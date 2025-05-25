@@ -1142,41 +1142,36 @@
             
             // Function to fetch movies by multiple moods
             function fetchMoviesByMoods(moods) {
-                displayedMovies.clear(); // Clear the set when fetching new moods
-                currentPage = 1; // Reset page counter when fetching new moods
                 const moodsParam = moods.join(',');
+                isLoading = true;
+                loadMoreBtn.classList.add('loading');
                 
-                // Show loading
-                loadingElement.style.display = 'block';
-                recommendationsSection.style.display = 'none';
-                noResultsElement.style.display = 'none';
-                movieGrid.innerHTML = '';
+                // Construct URL with pagination and sorting
+                const url = `/api/movies/by_multiple_moods?moods=${encodeURIComponent(moodsParam)}&page=${currentPage}&sort_by=${currentSort.by}&order=${currentSort.order}`;
                 
-                // First, fetch user's watchlist to know which movies are already in it
+                // First, fetch user's watchlist
                 fetchUserWatchlist().then(() => {
-                    // Then fetch movie recommendations with sorting parameters
-                    fetch(`/api/movies/by_multiple_moods?moods=${encodeURIComponent(moodsParam)}&page=${currentPage}&sort_by=${currentSort.by}&order=${currentSort.order}`)
+                    fetch(url)
                         .then(response => response.json())
-                        .then(movies => {
-                            // Hide loading
+                        .then(data => {
                             loadingElement.style.display = 'none';
+                            isLoading = false;
+                            loadMoreBtn.classList.remove('loading');
                             
-                            if (!movies || movies.length === 0) {
+                            if (!data.movies || data.movies.length === 0) {
                                 noResultsElement.style.display = 'block';
+                                loadMoreBtn.style.display = 'none';
                                 return;
                             }
                             
-                            // Display recommendations section if it's not already visible
+                            // Show recommendations section
                             recommendationsSection.style.display = 'block';
                             
                             // Update Netflix-style mood display
                             updateNetflixMoodDisplay();
                             
-                            // Clear previous results
-                            movieGrid.innerHTML = '';
-                            
                             // Add movie cards
-                            movies.forEach(movie => {
+                            data.movies.forEach(movie => {
                                 if (!displayedMovies.has(movie.title)) {
                                     displayedMovies.add(movie.title);
                                     const cardContainer = document.createElement('div');
@@ -1190,7 +1185,6 @@
                                     // Check if movie is in watchlist
                                     const inWatchlist = userWatchlist.has(movie.title);
                                     
-                                    // Create the movie card with updated styling
                                     cardLink.innerHTML = `
                                         <div class="movie-card">
                                             <img src="${movie.poster_url}" alt="${movie.title} poster" class="movie-poster" />
@@ -1214,12 +1208,13 @@
                                 }
                             });
                             
-                            // Setup quick add buttons for new movies
+                            // Setup quick add buttons
                             setupQuickAddButtons();
                             
-                            // Show load more button if there are enough movies
-                            if (movies.length >= 20) {
+                            // Update load more button visibility
+                            if (data.has_more) {
                                 loadMoreBtn.style.display = 'flex';
+                                loadMoreBtn.classList.remove('loading');
                             } else {
                                 loadMoreBtn.style.display = 'none';
                             }
@@ -1228,6 +1223,9 @@
                             console.error('Error fetching movies:', error);
                             loadingElement.style.display = 'none';
                             noResultsElement.style.display = 'block';
+                            loadMoreBtn.style.display = 'none';
+                            isLoading = false;
+                            loadMoreBtn.classList.remove('loading');
                         });
                 });
             }
@@ -1546,97 +1544,12 @@
 
             // Add click event for load more button
             loadMoreBtn.addEventListener('click', function() {
-                if (!isLoading) {
-                    loadMoreMovies();
-                }
-            });
-
-            // Function to load more movies
-            function loadMoreMovies() {
                 if (isLoading) return;
                 
-                isLoading = true;
-                loadMoreBtn.classList.add('loading');
-                
-                const moodsParam = selectedMoods.join(',');
-                
-                // Fetch more movies with pagination and sorting
-                fetch(`/api/movies/by_multiple_moods?moods=${encodeURIComponent(moodsParam)}&page=${currentPage}&sort_by=${currentSort.by}&order=${currentSort.order}`)
-                    .then(response => response.json())
-                    .then(movies => {
-                        let newMoviesAdded = 0;
-                        
-                        if (movies && movies.length > 0) {
-                            // Add new movies to the grid
-                            movies.forEach(movie => {
-                                // Skip if movie is already displayed
-                                if (displayedMovies.has(movie.title)) {
-                                    return;
-                                }
-                                
-                                displayedMovies.add(movie.title);
-                                newMoviesAdded++;
-                                
-                                const cardContainer = document.createElement('div');
-                                cardContainer.className = 'movie-card-container';
-                                cardContainer.style.position = 'relative';
-                                
-                                const cardLink = document.createElement('a');
-                                cardLink.href = `/movie/${encodeURIComponent(movie.title)}`;
-                                cardLink.className = 'movie-card-link';
-                                
-                                // Check if movie is in watchlist
-                                const inWatchlist = userWatchlist.has(movie.title);
-                                
-                                // Create the movie card with updated styling
-                                cardLink.innerHTML = `
-                                    <div class="movie-card">
-                                        <img src="${movie.poster_url}" alt="${movie.title} poster" class="movie-poster" />
-                                        <div class="movie-info-block">
-                                            <div class="movie-title text-center">${movie.title}</div>
-                                            <p class="movie-genre text-center">${movie.genre}</p>
-                                            <p class="movie-rating text-center">${movie.rating}/10</p>
-                                        </div>
-                                        <button class="quick-add-btn ${inWatchlist ? 'in-watchlist' : ''}" data-movie="${movie.title}" title="${inWatchlist ? 'Remove from watchlist' : 'Add to watchlist'}">
-                                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                                ${inWatchlist ? 
-                                                    '<path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"></path>' : 
-                                                    '<path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline>'}
-                                            </svg>
-                                        </button>
-                                    </div>
-                                `;
-                                
-                                cardContainer.appendChild(cardLink);
-                                movieGrid.appendChild(cardContainer);
-                            });
-                            
-                            // Setup quick add buttons for new movies
-                            setupQuickAddButtons();
-                            
-                            // Increment page counter only if we added new movies
-                            if (newMoviesAdded > 0) {
-                                currentPage++;
-                            }
-                            
-                            // Hide load more button if no new movies were added or we got less than requested
-                            if (newMoviesAdded === 0 || movies.length < 20) {
-                                loadMoreBtn.style.display = 'none';
-                            }
-                        } else {
-                            // No more movies to load
-                            loadMoreBtn.style.display = 'none';
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error loading more movies:', error);
-                        showToast('Error loading more movies', 'error');
-                    })
-                    .finally(() => {
-                        isLoading = false;
-                        loadMoreBtn.classList.remove('loading');
-                    });
-            }
+                currentPage++;
+                this.classList.add('loading');
+                fetchMoviesByMoods(selectedMoods);
+            });
         });
     </script>
 </body>

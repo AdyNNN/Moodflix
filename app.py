@@ -905,8 +905,6 @@ def get_movies_by_multiple_moods():
     sort_order = request.args.get("order", "asc")
     page_size = 20
     
-    print(f"Debug - Received request with moods: {moods_param}, page: {page}, sort_by: {sort_by}, order: {sort_order}")  # Debug log
-    
     if not moods_param:
         return jsonify({"error": "Moods parameter is required"}), 400
     
@@ -946,11 +944,21 @@ def get_movies_by_multiple_moods():
         genre_conditions = " OR ".join([f"genre LIKE ?" for _ in unique_genres])
         genre_params = [f'%{genre}%' for genre in unique_genres]
         
+        # First, get total count
+        count_query = f"""
+            SELECT COUNT(DISTINCT title)
+            FROM movies
+            WHERE ({genre_conditions}) AND rating >= 6.0
+        """
+        c.execute(count_query, genre_params)
+        total_count = c.fetchone()[0]
+        
         # Add sorting
         sort_clause = f"ORDER BY {sort_by} {sort_order}"
         if sort_by == "year":
             sort_clause = f"ORDER BY CAST(substr(release_date, 1, 4) AS INTEGER) {sort_order}"
         
+        # Then get paginated results
         query = f"""
             SELECT DISTINCT title, genre, description, rating, poster_url, trailer_url, release_date
             FROM movies
@@ -959,9 +967,6 @@ def get_movies_by_multiple_moods():
             LIMIT ? OFFSET ?
         """
         params = genre_params + [page_size, offset]
-        
-        print(f"Debug - Executing query: {query}")  # Debug log
-        print(f"Debug - Query parameters: {params}")  # Debug log
         
         c.execute(query, params)
         
@@ -977,10 +982,23 @@ def get_movies_by_multiple_moods():
                 "release_date": row[6],
                 "matched_mood": "genre-based"
             })
+        
+        conn.close()
+        
+        response_data = {
+            "movies": movies,
+            "total_count": total_count,
+            "page": page,
+            "has_more": total_count > (page * page_size)
+        }
+        return jsonify(response_data)
     
-    conn.close()
-    print(f"Debug - Returning {len(movies)} movies for page {page}")  # Debug log
-    return jsonify(movies)
+    return jsonify({
+        "movies": [],
+        "total_count": 0,
+        "page": page,
+        "has_more": False
+    })
 
 def initialize_mood_predictions():
     """Initialize mood predictions for all movies if not already done."""
