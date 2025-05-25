@@ -1,6 +1,6 @@
 from flask import Flask, render_template, request, redirect, session, url_for, jsonify
 import sqlite3
-from db import init_db, get_movies_by_genre_paginated, get_user_watchlist, add_to_watchlist, remove_from_watchlist, mark_as_watched, unmark_as_watched, get_or_create_folder, rename_folder, delete_folder, move_to_folder, get_user_id_by_username
+from db import init_db, get_movies_by_genre_paginated, get_user_watchlist, add_to_watchlist, remove_from_watchlist, mark_as_watched, unmark_as_watched, get_or_create_folder, rename_folder, delete_folder, move_to_folder, get_user_id_by_username, check_csv_changes
 import random
 
 # Add these imports for the content-based filtering
@@ -19,6 +19,16 @@ import os
 
 app = Flask(__name__)
 app.secret_key = "supersecret"  # Change this in production
+
+@app.before_request
+def check_csv_update():
+    """Check if CSV has been updated before each request"""
+    if request.endpoint != 'static':  # Skip for static files
+        with sqlite3.connect("moodflix.db") as conn:
+            if check_csv_changes(conn):
+                init_db(force_reseed=True)
+                # Clear any existing sessions to force re-login after reseed
+                session.clear()
 
 @app.route("/")
 def home():

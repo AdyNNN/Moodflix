@@ -2,15 +2,56 @@ import sqlite3
 import os
 import csv
 import random
+import hashlib
 
 DB_FILE = 'moodflix.db'
 CSV_FILE = 'movies.csv'
+
+def get_csv_hash():
+    """Calculate hash of CSV file to detect changes"""
+    if not os.path.exists(CSV_FILE):
+        return None
+    
+    with open(CSV_FILE, 'rb') as f:
+        return hashlib.md5(f.read()).hexdigest()
+
+def check_csv_changes(conn):
+    """Check if CSV file has changed by comparing stored and current hash"""
+    c = conn.cursor()
+    
+    # Create table to store CSV hash if it doesn't exist
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS app_state (
+            key TEXT PRIMARY KEY,
+            value TEXT
+        )
+    ''')
+    
+    # Get current CSV hash
+    current_hash = get_csv_hash()
+    if not current_hash:
+        return False
+    
+    # Get stored hash
+    c.execute("SELECT value FROM app_state WHERE key = 'csv_hash'")
+    result = c.fetchone()
+    stored_hash = result[0] if result else None
+    
+    # Update stored hash if CSV has changed
+    if current_hash != stored_hash:
+        c.execute("INSERT OR REPLACE INTO app_state (key, value) VALUES (?, ?)", 
+                 ('csv_hash', current_hash))
+        conn.commit()
+        return True
+    
+    return False
 
 def init_db(force_reseed=False):
     with sqlite3.connect(DB_FILE) as conn:
         c = conn.cursor()
 
         # --- Create tables ---
+        # 1. Users table (must be first as other tables reference it)
         c.execute('''
             CREATE TABLE IF NOT EXISTS users (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -19,16 +60,36 @@ def init_db(force_reseed=False):
             )
         ''')
 
+        # 2. Movies table
         c.execute('''
             CREATE TABLE IF NOT EXISTS movies (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 title TEXT NOT NULL,
                 genre TEXT,
                 description TEXT,
-                rating REAL
+                rating REAL,
+                release_date TEXT,
+                cast TEXT,
+                runtime INTEGER,
+                poster_url TEXT,
+                trailer_url TEXT,
+                predicted_mood TEXT
             )
         ''')
 
+        # 3. Folders table (references users)
+        c.execute('''
+            CREATE TABLE IF NOT EXISTS folders (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                name TEXT NOT NULL,
+                date_created TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(user_id, name),
+                FOREIGN KEY(user_id) REFERENCES users(id)
+            )
+        ''')
+
+        # 4. Watchlist table (references users, movies, and folders)
         c.execute('''
             CREATE TABLE IF NOT EXISTS watchlist (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -43,6 +104,7 @@ def init_db(force_reseed=False):
             )
         ''')
 
+        # 5. Watched table (references users and movies)
         c.execute('''
             CREATE TABLE IF NOT EXISTS watched (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -55,84 +117,96 @@ def init_db(force_reseed=False):
                 FOREIGN KEY(movie_id) REFERENCES movies(id)
             )
         ''')
+
+        # Check if we need to reseed the database
+        need_reseed = force_reseed
         
-        # New table for folders
-        c.execute('''
-            CREATE TABLE IF NOT EXISTS folders (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER NOT NULL,
-                name TEXT NOT NULL,
-                date_created TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                UNIQUE(user_id, name),
-                FOREIGN KEY(user_id) REFERENCES users(id)
-            )
-        ''')
-
-        # --- Add any missing columns ---
-        c.execute("PRAGMA table_info(movies)")
-        existing_columns = [row[1] for row in c.fetchall()]
-        new_columns = {
-            "description": "TEXT",
-            "release_date": "TEXT",
-            "cast": "TEXT",
-            "runtime": "INTEGER",
-            "poster_url": "TEXT",
-            "trailer_url": "TEXT"
-        }
-        for column, datatype in new_columns.items():
-            if column not in existing_columns:
-                print(f"[DB] Adding column '{column}' to movies...")
-                c.execute(f"ALTER TABLE movies ADD COLUMN {column} {datatype}")
-
-        # --- Add missing columns to watchlist ---
-        c.execute("PRAGMA table_info(watchlist)")
-        existing_columns = [row[1] for row in c.fetchall()]
-        if "date_added" not in existing_columns:
-            c.execute("ALTER TABLE watchlist ADD COLUMN date_added TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
-        if "folder_id" not in existing_columns:
-            c.execute("ALTER TABLE watchlist ADD COLUMN folder_id INTEGER REFERENCES folders(id)")
-
-        # --- Add missing columns to watched ---
-        c.execute("PRAGMA table_info(watched)")
-        existing_columns = [row[1] for row in c.fetchall()]
-        if "date_watched" not in existing_columns:
-            c.execute("ALTER TABLE watched ADD COLUMN date_watched TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
-        if "user_rating" not in existing_columns:
-            c.execute("ALTER TABLE watched ADD COLUMN user_rating INTEGER DEFAULT 0")
-
-        # ✅ Optional: force reseed (DEV ONLY)
-        if force_reseed:
-            print("[DB] Force clearing existing movies...")
-            c.execute("DELETE FROM movies")
-
-        # --- Seed if empty ---
-        c.execute("SELECT COUNT(*) FROM movies")
-        if c.fetchone()[0] == 0 and os.path.exists(CSV_FILE):
-            print("[DB] Seeding movies from CSV...")
-            with open(CSV_FILE, newline='', encoding='utf-8') as csvfile:
-                reader = csv.DictReader(csvfile)
-                for row in reader:
-                    title = row.get("title", "").strip()
-                    genre = row.get("genres", "").strip()
-                    description = row.get("overview", "").strip()
-                    try:
-                        rating = round(float(row.get("rating", 0)), 1)
-                    except:
-                        rating = 0
-                    release_date = row.get("release_date", "").strip() or "Unknown"
-                    cast = row.get("cast", "").strip() or "Unknown"
-                    try:
-                        runtime = int(float(row.get("runtime", 0)))
-                    except:
-                        runtime = 0
-                    poster_url = row.get("poster_url", "").strip() or "/static/posters/placeholder.jpg"
-                    trailer_url = row.get("trailer_url", "").strip()
-
-                    c.execute('''
-                        INSERT INTO movies (title, genre, description, rating, release_date, cast, runtime, poster_url, trailer_url)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                    ''', (title, genre, description, rating, release_date, cast, runtime, poster_url, trailer_url))
-            print("[DB] Seeding complete.")
+        if not need_reseed and os.path.exists(CSV_FILE):
+            # Check if CSV has changed by comparing hashes
+            if check_csv_changes(conn):
+                print("[DB] CSV file has changed. Reseeding database...")
+                need_reseed = True
+        
+        if need_reseed:
+            # Clear existing movies and their related data
+            print("[DB] Clearing existing movies and related data...")
+            c.execute("DELETE FROM watchlist")  # Clear watchlist first due to foreign key
+            c.execute("DELETE FROM watched")    # Clear watched data
+            c.execute("DELETE FROM movies")     # Then clear movies
+            
+            # Delete the mood classifier model to force retraining
+            if os.path.exists('mood_classifier.pkl'):
+                os.remove('mood_classifier.pkl')
+                print("[DB] Removed old mood classifier model for retraining...")
+            
+            # Reseed from CSV
+            if os.path.exists(CSV_FILE):
+                print("[DB] Seeding movies from CSV...")
+                with open(CSV_FILE, newline='', encoding='utf-8') as csvfile:
+                    reader = csv.DictReader(csvfile)
+                    
+                    # Map CSV columns to database columns
+                    column_mapping = {
+                        'title': 'title',
+                        'genres': 'genre',  # Note the difference
+                        'overview': 'description',  # Note the difference
+                        'rating': 'rating',
+                        'release_date': 'release_date',
+                        'cast': 'cast',
+                        'runtime': 'runtime',
+                        'poster_url': 'poster_url',
+                        'trailer_url': 'trailer_url'
+                    }
+                    
+                    for row in reader:
+                        # Extract and clean data using the mapping
+                        data = {}
+                        for csv_col, db_col in column_mapping.items():
+                            value = row.get(csv_col, '').strip()
+                            
+                            # Special handling for different column types
+                            if db_col == 'rating':
+                                try:
+                                    value = round(float(value or 0), 1)
+                                except:
+                                    value = 0
+                            elif db_col == 'runtime':
+                                try:
+                                    value = int(float(value or 0))
+                                except:
+                                    value = 0
+                            elif db_col == 'poster_url':
+                                value = value or '/static/posters/placeholder.jpg'
+                                # Ensure poster URL starts with /static/posters/
+                                if not value.startswith('/static/posters/'):
+                                    # Check if the file exists in the posters directory
+                                    poster_path = os.path.join('static/posters', os.path.basename(value))
+                                    if os.path.exists(poster_path):
+                                        value = f'/static/posters/{os.path.basename(value)}'
+                                    else:
+                                        value = '/static/posters/placeholder.jpg'
+                            
+                            data[db_col] = value
+                        
+                        # Insert into database
+                        c.execute('''
+                            INSERT INTO movies (
+                                title, genre, description, rating, 
+                                release_date, cast, runtime, 
+                                poster_url, trailer_url
+                            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        ''', (
+                            data['title'], data['genre'], data['description'],
+                            data['rating'], data['release_date'], data['cast'],
+                            data['runtime'], data['poster_url'], data['trailer_url']
+                        ))
+                
+                print("[DB] Seeding complete.")
+                
+                # Initialize mood predictions for the new data
+                initialize_mood_predictions()
+            else:
+                print("[DB] Warning: movies.csv not found!")
 
         conn.commit()
 
