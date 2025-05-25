@@ -228,7 +228,7 @@ def get_similar_movies(movie_title, limit=5):
     
     # Get the current movie's details
     c.execute('''
-        SELECT id, title, genre, "cast", description
+        SELECT id, title, genre, "cast", description, rating, release_date
         FROM movies
         WHERE title = ?
     ''', (movie_title,))
@@ -238,14 +238,14 @@ def get_similar_movies(movie_title, limit=5):
         conn.close()
         return []
     
-    current_id, current_title, current_genre, current_cast, current_description = current_movie
+    current_id, current_title, current_genre, current_cast, current_description, current_rating, current_release_date = current_movie
     
     # Get all other movies
     c.execute('''
         SELECT id, title, genre, description, rating, release_date, "cast", runtime, poster_url, trailer_url
         FROM movies
-        WHERE id != ?
-    ''', (current_id,))
+        WHERE id != ? AND rating >= ?
+    ''', (current_id, max(0, current_rating - 2)))  # Get movies with similar or better rating
     
     all_movies = c.fetchall()
     conn.close()
@@ -254,8 +254,8 @@ def get_similar_movies(movie_title, limit=5):
         return []
     
     # Create a list of all movies including the current one for vectorization
-    movie_data = [(current_id, current_title, current_genre, current_cast, current_description)] + [
-        (movie[0], movie[1], movie[2], movie[6], movie[3]) for movie in all_movies
+    movie_data = [(current_id, current_title, current_genre, current_cast, current_description, current_rating, current_release_date)] + [
+        (movie[0], movie[1], movie[2], movie[6], movie[3], movie[4], movie[5]) for movie in all_movies
     ]
     
     # Clean and prepare text data
@@ -270,24 +270,33 @@ def get_similar_movies(movie_title, limit=5):
     
     # Create content strings for each movie by combining features
     content_strings = []
-    for _, title, genre, cast, desc in movie_data:
+    for _, title, genre, cast, desc, rating, release_date in movie_data:
         # Clean and weight the features
         clean_genre = clean_text(genre)
         clean_cast = clean_text(cast)
         clean_desc = clean_text(desc)
         
-        # Weight features differently (genre and cast are more important than description)
-        # Repeat important features to give them more weight
+        # Extract year from release date
+        year = release_date[:4] if release_date else ""
+        
+        # Weight features differently
         weighted_content = (
-            f"{clean_genre} {clean_genre} {clean_genre} " +  # Genre has highest weight
-            f"{clean_cast} {clean_cast} " +                  # Cast has medium weight
-            f"{clean_desc}"                                  # Description has lowest weight
+            f"{clean_genre} {clean_genre} {clean_genre} {clean_genre} " +  # Genre has highest weight
+            f"{clean_cast} {clean_cast} {clean_cast} " +                   # Cast has high weight
+            f"{year} {year} " +                                           # Year has medium weight
+            f"{clean_desc}"                                               # Description has lowest weight
         )
         
         content_strings.append(weighted_content)
     
-    # Create TF-IDF vectors
-    tfidf_vectorizer = TfidfVectorizer(max_features=5000, stop_words='english')
+    # Create TF-IDF vectors with improved parameters
+    tfidf_vectorizer = TfidfVectorizer(
+        max_features=5000,
+        stop_words='english',
+        ngram_range=(1, 2),  # Consider both unigrams and bigrams
+        min_df=2,            # Ignore terms that appear in less than 2 documents
+        max_df=0.95          # Ignore terms that appear in more than 95% of documents
+    )
     tfidf_matrix = tfidf_vectorizer.fit_transform(content_strings)
     
     # Calculate cosine similarity between the current movie and all other movies
@@ -296,9 +305,19 @@ def get_similar_movies(movie_title, limit=5):
     # Get indices of movies sorted by similarity score
     similar_indices = cosine_sim.argsort()[::-1]
     
-    # Get the top similar movies
+    # Get more movies than needed for randomization
+    top_similar_indices = similar_indices[:min(limit * 3, len(similar_indices))]
+    
+    # Randomly select from top similar movies
+    selected_indices = np.random.choice(
+        top_similar_indices,
+        size=min(limit, len(top_similar_indices)),
+        replace=False
+    )
+    
+    # Get the selected similar movies
     similar_movies = []
-    for idx in similar_indices[:limit]:
+    for idx in selected_indices:
         movie = all_movies[idx]
         similar_movies.append({
             "title": movie[1],
@@ -310,7 +329,7 @@ def get_similar_movies(movie_title, limit=5):
             "runtime": movie[7],
             "poster_url": movie[8] or "/static/posters/placeholder.jpg",
             "trailer_url": movie[9],
-            "similarity_score": float(cosine_sim[idx])  # Convert numpy float to Python float
+            "similarity_score": float(cosine_sim[idx])
         })
     
     return similar_movies
