@@ -611,7 +611,13 @@ def train_mood_classifier():
     # Get movie data from database
     conn = sqlite3.connect("moodflix.db")
     c = conn.cursor()
-    c.execute("SELECT description, genre FROM movies WHERE description IS NOT NULL AND description != ''")
+    c.execute("""
+        SELECT description, genre, rating, release_date, runtime 
+        FROM movies 
+        WHERE description IS NOT NULL 
+        AND description != ''
+        AND genre IS NOT NULL
+    """)
     data = c.fetchall()
     conn.close()
     
@@ -620,28 +626,132 @@ def train_mood_classifier():
     
     descriptions = [row[0] for row in data]
     genres = [row[1] for row in data]
+    ratings = [row[2] for row in data]
+    release_dates = [row[3] for row in data]
+    runtimes = [row[4] for row in data]
     
-    # Map genres to moods (simplified mapping)
+    # Enhanced mood mapping with weighted genres and combinations
     mood_mapping = {
-        "Comedy": "happy",
-        "Animation": "happy",
-        "Family": "happy",
-        "Drama": "sad",
-        "Romance": "romantic",
-        "Thriller": "tense",
-        "Horror": "tense",
-        "Mystery": "tense",
-        "Action": "excited",
-        "Adventure": "excited",
-        "Sci-Fi": "excited"
+        "happy": {
+            "primary_genres": ["Comedy", "Animation", "Family"],
+            "secondary_genres": ["Adventure", "Fantasy"],
+            "genre_combinations": [
+                ("Comedy", "Romance"),  # Romantic comedies
+                ("Comedy", "Adventure"),  # Fun adventures
+                ("Animation", "Family")   # Family animations
+            ],
+            "attributes": {
+                "min_rating": 6.5,  # Happy movies should be well-rated
+                "preferred_runtime": (90, 120)  # Not too long, not too short
+            }
+        },
+        "sad": {
+            "primary_genres": ["Drama"],
+            "secondary_genres": ["Romance", "War"],
+            "genre_combinations": [
+                ("Drama", "Romance"),  # Romantic dramas
+                ("Drama", "War"),      # War dramas
+                ("Drama", "History")   # Historical dramas
+            ],
+            "attributes": {
+                "min_rating": 7.0,  # Sad movies should be impactful
+                "preferred_runtime": (100, 160)  # Can be longer
+            }
+        },
+        "romantic": {
+            "primary_genres": ["Romance"],
+            "secondary_genres": ["Drama", "Comedy"],
+            "genre_combinations": [
+                ("Romance", "Comedy"),  # Rom-coms
+                ("Romance", "Drama"),   # Romantic dramas
+                ("Romance", "Fantasy")  # Fantasy romance
+            ],
+            "attributes": {
+                "min_rating": 6.0,
+                "preferred_runtime": (90, 130)
+            }
+        },
+        "tense": {
+            "primary_genres": ["Thriller", "Horror", "Mystery"],
+            "secondary_genres": ["Crime", "Sci-Fi"],
+            "genre_combinations": [
+                ("Thriller", "Mystery"),  # Mystery thrillers
+                ("Horror", "Thriller"),   # Horror thrillers
+                ("Crime", "Mystery")      # Crime mysteries
+            ],
+            "attributes": {
+                "min_rating": 6.5,
+                "preferred_runtime": (90, 150)
+            }
+        },
+        "excited": {
+            "primary_genres": ["Action", "Adventure", "Sci-Fi"],
+            "secondary_genres": ["Fantasy", "Thriller"],
+            "genre_combinations": [
+                ("Action", "Sci-Fi"),     # Sci-fi action
+                ("Adventure", "Fantasy"),  # Fantasy adventures
+                ("Action", "Adventure")    # Action adventures
+            ],
+            "attributes": {
+                "min_rating": 6.0,
+                "preferred_runtime": (100, 160)  # Can be longer for epics
+            }
+        },
+        "relaxed": {
+            "primary_genres": ["Drama", "Comedy", "Family"],
+            "secondary_genres": ["Documentary", "Music"],
+            "genre_combinations": [
+                ("Drama", "Comedy"),    # Light dramas
+                ("Family", "Fantasy"),  # Family fantasy
+                ("Comedy", "Music")     # Musical comedies
+            ],
+            "attributes": {
+                "min_rating": 6.0,
+                "preferred_runtime": (90, 120)  # Not too demanding
+            }
+        }
     }
     
-    # Assign moods based on primary genre
+    # Function to determine mood score based on genres and attributes
+    def get_mood_scores(movie_genres, rating, runtime):
+        scores = {mood: 0.0 for mood in mood_mapping.keys()}
+        movie_genres = set(g.strip() for g in movie_genres.split('|'))
+        
+        for mood, criteria in mood_mapping.items():
+            score = 0.0
+            
+            # Primary genres (highest weight)
+            primary_matches = len(set(criteria["primary_genres"]) & movie_genres)
+            score += primary_matches * 0.4
+            
+            # Secondary genres (medium weight)
+            secondary_matches = len(set(criteria["secondary_genres"]) & movie_genres)
+            score += secondary_matches * 0.2
+            
+            # Genre combinations (high weight)
+            for genre1, genre2 in criteria["genre_combinations"]:
+                if genre1 in movie_genres and genre2 in movie_genres:
+                    score += 0.3
+            
+            # Rating criteria
+            if rating >= criteria["attributes"]["min_rating"]:
+                score += 0.1
+            
+            # Runtime criteria
+            min_runtime, max_runtime = criteria["attributes"]["preferred_runtime"]
+            if min_runtime <= runtime <= max_runtime:
+                score += 0.1
+            
+            scores[mood] = score
+        
+        return scores
+    
+    # Generate mood labels based on the enhanced criteria
     moods = []
-    for genre_list in genres:
-        primary_genre = genre_list.split('|')[0].strip() if genre_list else "Drama"
-        mood = mood_mapping.get(primary_genre, "relaxed")  # Default to relaxed
-        moods.append(mood)
+    for i in range(len(data)):
+        scores = get_mood_scores(genres[i], ratings[i], runtimes[i])
+        primary_mood = max(scores.items(), key=lambda x: x[1])[0]
+        moods.append(primary_mood)
     
     # Create and train the model
     vectorizer = TfidfVectorizer(max_features=5000, stop_words='english')
