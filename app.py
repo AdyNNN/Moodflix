@@ -71,7 +71,9 @@ def home():
         "Romance": get_movies_by_genre_paginated("Romance"),
         "Comedy": get_movies_by_genre_paginated("Comedy"),
     }
-    return render_template("index.html", genres=genres, username=username, featured_movies=featured_movies)
+    user_recommendations = get_user_recommendations(username)
+    
+    return render_template("index.html", genres=genres, username=username, featured_movies=featured_movies, user_recommendations=user_recommendations)
 
 @app.route("/moods")
 def moods():
@@ -1053,6 +1055,156 @@ def get_sorted_movies_by_moods():
     movies = get_movies_by_multiple_moods_sorted(moods, sort_by, order)
     
     return jsonify(movies)
+
+def get_user_recommendations(username, limit=5):
+    if username == "Guest":
+        return []
+        
+    conn = sqlite3.connect("moodflix.db")
+    c = conn.cursor()
+    user_id = get_user_id_by_username(username)
+    
+    if not user_id:
+        conn.close()
+        return []
+    
+    # Get genres from user's watchlist and watched movies
+    c.execute("""
+        SELECT DISTINCT m.genre
+        FROM movies m
+        LEFT JOIN watchlist w ON m.id = w.movie_id
+        LEFT JOIN watched wat ON m.id = wat.movie_id
+        WHERE (w.user_id = ? OR wat.user_id = ?)
+    """, (user_id, user_id))
+    
+    user_genres = []
+    for row in c.fetchall():
+        genres = [g.strip() for g in row[0].split(',')]
+        user_genres.extend(genres)
+    
+    # Get most frequent genres
+    from collections import Counter
+    top_genres = [genre for genre, _ in Counter(user_genres).most_common(3)]
+    
+    if not top_genres:
+        conn.close()
+        return []
+    
+    # Get movies similar to user's taste but not in watchlist or watched
+    genre_conditions = " OR ".join([f"genre LIKE ?" for _ in top_genres])
+    genre_params = [f'%{genre}%' for genre in top_genres]
+    
+    query = f"""
+        SELECT DISTINCT m.title, m.genre, m.description, m.rating, 
+               m.release_date, m."cast", m.runtime, m.poster_url, m.trailer_url
+        FROM movies m
+        WHERE ({genre_conditions})
+        AND m.rating >= 7.0
+        AND m.id NOT IN (
+            SELECT movie_id FROM watchlist WHERE user_id = ?
+            UNION
+            SELECT movie_id FROM watched WHERE user_id = ?
+        )
+        ORDER BY m.rating DESC
+        LIMIT ?
+    """
+    
+    c.execute(query, genre_params + [user_id, user_id, limit])
+    
+    recommendations = []
+    for row in c.fetchall():
+        recommendations.append({
+            "title": row[0],
+            "genre": row[1],
+            "description": row[2],
+            "rating": row[3],
+            "release_date": row[4],
+            "cast": row[5],
+            "runtime": row[6],
+            "poster_url": row[7] or "/static/posters/placeholder.jpg",
+            "trailer_url": row[8]
+        })
+    
+    conn.close()
+    return recommendations
+
+@app.route("/api/user-recommendations")
+def api_user_recommendations():
+    username = session.get("username", "Guest")
+    page = int(request.args.get("page", 0))
+    limit = 5  # Number of movies per page
+    offset = page * limit
+    
+    if username == "Guest":
+        return jsonify([])
+        
+    conn = sqlite3.connect("moodflix.db")
+    c = conn.cursor()
+    user_id = get_user_id_by_username(username)
+    
+    if not user_id:
+        conn.close()
+        return jsonify([])
+    
+    # Get genres from user's watchlist and watched movies
+    c.execute("""
+        SELECT DISTINCT m.genre
+        FROM movies m
+        LEFT JOIN watchlist w ON m.id = w.movie_id
+        LEFT JOIN watched wat ON m.id = wat.movie_id
+        WHERE (w.user_id = ? OR wat.user_id = ?)
+    """, (user_id, user_id))
+    
+    user_genres = []
+    for row in c.fetchall():
+        genres = [g.strip() for g in row[0].split(',')]
+        user_genres.extend(genres)
+    
+    # Get most frequent genres
+    from collections import Counter
+    top_genres = [genre for genre, _ in Counter(user_genres).most_common(3)]
+    
+    if not top_genres:
+        conn.close()
+        return jsonify([])
+    
+    # Get movies similar to user's taste but not in watchlist or watched
+    genre_conditions = " OR ".join([f"genre LIKE ?" for _ in top_genres])
+    genre_params = [f'%{genre}%' for genre in top_genres]
+    
+    query = f"""
+        SELECT DISTINCT m.title, m.genre, m.description, m.rating, 
+               m.release_date, m."cast", m.runtime, m.poster_url, m.trailer_url
+        FROM movies m
+        WHERE ({genre_conditions})
+        AND m.rating >= 7.0
+        AND m.id NOT IN (
+            SELECT movie_id FROM watchlist WHERE user_id = ?
+            UNION
+            SELECT movie_id FROM watched WHERE user_id = ?
+        )
+        ORDER BY m.rating DESC
+        LIMIT ? OFFSET ?
+    """
+    
+    c.execute(query, genre_params + [user_id, user_id, limit, offset])
+    
+    recommendations = []
+    for row in c.fetchall():
+        recommendations.append({
+            "title": row[0],
+            "genre": row[1],
+            "description": row[2],
+            "rating": row[3],
+            "release_date": row[4],
+            "cast": row[5],
+            "runtime": row[6],
+            "poster_url": row[7] or "/static/posters/placeholder.jpg",
+            "trailer_url": row[8]
+        })
+    
+    conn.close()
+    return jsonify(recommendations)
 
 if __name__ == "__main__":
     app.run(debug=True)

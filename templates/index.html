@@ -345,6 +345,43 @@
             <h1 style="text-align: center;">Welcome to MoodFlix</h1>
             <p class="intro-text">Discover movies by mood. Whether you're happy, sad, or in love, we've got something for you.</p>
 
+            {% if username != "Guest" and user_recommendations %}
+            <section class="genre-section">
+                <div class="genre-header">
+                    <h2>Movies you might like...</h2>
+                </div>
+                <div class="genre-carousel" data-genre="user-recommendations" data-page="0">
+                    <button class="carousel-btn prev-btn" onclick="loadPrev(this)">
+                        <span class="arrow">&#10094;</span>
+                    </button>
+                    <div class="movie-list">
+                        {% for movie in user_recommendations %}
+                        <a href="{{ url_for('view_movie', title=movie.title) }}" class="movie-card-link">
+                            <div class="movie-card">
+                                <img src="{{ movie.poster_url }}" alt="{{ movie.title }} poster" class="movie-poster" />
+                                <div class="movie-info-block">
+                                    <div class="movie-title text-center">{{ movie.title }}</div>
+                                    <p class="movie-genre text-center">{{ movie.genre }}</p>
+                                    <p class="movie-rating text-center">{{ movie.rating }}/10</p>
+                                </div>
+                                <button class="quick-add-btn" data-movie="{{ movie.title }}" title="Add to watchlist">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"></path>
+                                        <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                                        <polyline points="7 3 7 8 15 8"></polyline>
+                                    </svg>
+                                </button>
+                            </div>
+                        </a>
+                        {% endfor %}
+                    </div>
+                    <button class="carousel-btn next-btn visible" onclick="loadNext(this)">
+                        <span class="arrow">&#10095;</span>
+                    </button>
+                </div>
+            </section>
+            {% endif %}
+
             {% for genre, movies in genres.items() %}
             <section class="genre-section">
                 <div class="genre-header">
@@ -523,40 +560,33 @@
         }
 
         function loadNext(button) {
-            const container = button.closest(".genre-carousel");
-            const genre = container.dataset.genre;
-            let page = parseInt(container.dataset.page) + 1;
-
-            fetch(`/genre/${genre}/movies?page=${page}`)
-                .then(res => res.json())
-                .then(movies => {
-                    if (movies.length > 0) {
-                        updateMovieList(container, movies);
-                        container.dataset.page = page;
-                        container.querySelector(".prev-btn").classList.add("visible");
-                    }
-                });
+            const carousel = button.closest('.genre-carousel');
+            const currentPage = parseInt(carousel.dataset.page || 0);
+            const genre = carousel.dataset.genre;
+            
+            if (genre === 'user-recommendations') {
+                carousel.dataset.page = currentPage + 1;
+                loadUserRecommendations(carousel, currentPage + 1);
+            } else {
+                // Your existing genre loading code...
+                loadGenreMovies(carousel, genre, currentPage + 1);
+            }
         }
 
         function loadPrev(button) {
-            const container = button.closest(".genre-carousel");
-            const genre = container.dataset.genre;
-            let page = Math.max(0, parseInt(container.dataset.page) - 1);
-
-            fetch(`/genre/${genre}/movies?page=${page}`)
-                .then(res => res.json())
-                .then(movies => {
-                    updateMovieList(container, movies);
-                    container.dataset.page = page;
-
-                    const prevBtn = container.querySelector(".prev-btn");
-
-                    if (page === 0) {
-                        prevBtn.classList.remove("visible");
-                    } else {
-                        prevBtn.classList.add("visible"); // ✅ make sure it reappears if not on first page
-                    }
-                });
+            const carousel = button.closest('.genre-carousel');
+            const currentPage = parseInt(carousel.dataset.page || 0);
+            const genre = carousel.dataset.genre;
+            
+            if (currentPage > 0) {
+                if (genre === 'user-recommendations') {
+                    carousel.dataset.page = currentPage - 1;
+                    loadUserRecommendations(carousel, currentPage - 1);
+                } else {
+                    // Your existing genre loading code...
+                    loadGenreMovies(carousel, genre, currentPage - 1);
+                }
+            }
         }
         
         // Fetch user's watchlist
@@ -751,6 +781,73 @@
                 toast.remove();
             }, 300);
         }
+
+        // Add these functions for the user recommendations carousel
+        function loadUserRecommendations(carousel, page) {
+            const movieList = carousel.querySelector('.movie-list');
+            
+            fetch(`/api/user-recommendations?page=${page}`)
+                .then(response => response.json())
+                .then(movies => {
+                    if (movies.length > 0) {
+                        movieList.innerHTML = movies.map(movie => `
+                            <a href="/movie/${encodeURIComponent(movie.title)}" class="movie-card-link">
+                                <div class="movie-card">
+                                    <img src="${movie.poster_url}" alt="${movie.title} poster" class="movie-poster" />
+                                    <div class="movie-info-block">
+                                        <div class="movie-title text-center">${movie.title}</div>
+                                        <p class="movie-genre text-center">${movie.genre}</p>
+                                        <p class="movie-rating text-center">${movie.rating}/10</p>
+                                    </div>
+                                    <button class="quick-add-btn" data-movie="${movie.title}" title="Add to watchlist">
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"></path>
+                                            <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                                            <polyline points="7 3 7 8 15 8"></polyline>
+                                        </svg>
+                                    </button>
+                                </div>
+                            </a>
+                        `).join('');
+                        
+                        // Setup quick add buttons for new cards
+                        setupQuickAddButtons();
+                        
+                        // Update carousel buttons visibility
+                        updateCarouselButtons(carousel);
+                    } else {
+                        // If no more movies, disable the next button
+                        const nextBtn = carousel.querySelector('.next-btn');
+                        if (nextBtn) nextBtn.classList.remove('visible');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading recommendations:', error);
+                });
+        }
+
+        // Update your existing updateCarouselButtons function
+        function updateCarouselButtons(carousel) {
+            const prevBtn = carousel.querySelector('.prev-btn');
+            const nextBtn = carousel.querySelector('.next-btn');
+            const currentPage = parseInt(carousel.dataset.page || 0);
+            
+            if (prevBtn) {
+                prevBtn.classList.toggle('visible', currentPage > 0);
+            }
+            
+            // Always show next button initially, it will be hidden if no more movies are returned
+            if (nextBtn) {
+                nextBtn.classList.add('visible');
+            }
+        }
+
+        // Initialize carousel buttons on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('.genre-carousel').forEach(carousel => {
+                updateCarouselButtons(carousel);
+            });
+        });
     </script>
 </body>
 </html>
