@@ -559,6 +559,7 @@
             setupQuickAddButtons();
         }
 
+        // Function to handle next button click
         function loadNext(button) {
             const carousel = button.closest('.genre-carousel');
             const currentPage = parseInt(carousel.dataset.page || 0);
@@ -568,11 +569,12 @@
                 carousel.dataset.page = currentPage + 1;
                 loadUserRecommendations(carousel, currentPage + 1);
             } else {
-                // Your existing genre loading code...
+                carousel.dataset.page = currentPage + 1;
                 loadGenreMovies(carousel, genre, currentPage + 1);
             }
         }
 
+        // Function to handle previous button click
         function loadPrev(button) {
             const carousel = button.closest('.genre-carousel');
             const currentPage = parseInt(carousel.dataset.page || 0);
@@ -583,7 +585,7 @@
                     carousel.dataset.page = currentPage - 1;
                     loadUserRecommendations(carousel, currentPage - 1);
                 } else {
-                    // Your existing genre loading code...
+                    carousel.dataset.page = currentPage - 1;
                     loadGenreMovies(carousel, genre, currentPage - 1);
                 }
             }
@@ -622,164 +624,93 @@
         
         // Setup quick add buttons
         function setupQuickAddButtons() {
-            const quickAddButtons = document.querySelectorAll('.quick-add-btn');
-            
-            quickAddButtons.forEach(button => {
-                // Stop propagation to prevent navigating to movie page when clicking the button
-                button.addEventListener('click', function(e) {
+            document.querySelectorAll('.quick-add-btn').forEach(button => {
+                // Remove existing click listeners
+                button.replaceWith(button.cloneNode(true));
+                
+                // Get the fresh button reference after cloning
+                const newButton = document.querySelector(`[data-movie="${button.dataset.movie}"]`);
+                
+                // Add new click listener
+                newButton.addEventListener('click', function(e) {
                     e.preventDefault();
                     e.stopPropagation();
+                    const movieTitle = this.dataset.movie;
                     
-                    const movieTitle = this.getAttribute('data-movie');
-                    const isInWatchlist = this.classList.contains('in-watchlist');
-                    
-                    if (isInWatchlist) {
-                        // Remove from watchlist
-                        removeFromWatchlist(movieTitle, this);
-                    } else {
-                        // Add to watchlist
-                        addToWatchlist(movieTitle, this);
+                    // Check if user is logged in
+                    if (!document.querySelector('.username')) {
+                        showToast('Please sign in to add movies to your watchlist', 'error');
+                        return;
                     }
+                    
+                    const isInWatchlist = this.classList.contains('in-watchlist');
+                    const action = isInWatchlist ? 'remove' : 'add';
+                    
+                    fetch(`/api/watchlist/${action}`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ movie_title: movieTitle })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            if (action === 'add') {
+                                this.classList.add('in-watchlist');
+                                userWatchlist.add(movieTitle);
+                                showToast(`"${movieTitle}" added to your watchlist`);
+                            } else {
+                                this.classList.remove('in-watchlist');
+                                userWatchlist.delete(movieTitle);
+                                showToast(`"${movieTitle}" removed from watchlist`);
+                            }
+                            
+                            // Update button icon
+                            this.innerHTML = `
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    ${isInWatchlist ? 
+                                        '<path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline>' : 
+                                        '<path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"></path>'}
+                                </svg>
+                            `;
+                            this.title = isInWatchlist ? 'Add to watchlist' : 'Remove from watchlist';
+                        } else {
+                            showToast(data.message || 'Failed to update watchlist', 'error');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        showToast('Failed to update watchlist', 'error');
+                    });
                 });
-            });
-        }
-        
-        // Add movie to watchlist
-        function addToWatchlist(movieTitle, buttonElement) {
-            // Check if user is logged in
-            if (!document.querySelector('.username')) {
-                showToast('Please sign in to add movies to your watchlist', 'error');
-                return;
-            }
-            
-            fetch('/api/watchlist/add', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    movie_title: movieTitle
-                })
-            })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Failed to add movie to watchlist');
-                }
-                return response.json();
-            })
-            .then(data => {
-                if (data.success) {
-                    // Update button state
-                    buttonElement.classList.add('in-watchlist');
-                    buttonElement.setAttribute('title', 'Remove from watchlist');
-                    buttonElement.innerHTML = `
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M9 11l3 3L22 4"></path>
-                            <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"></path>
-                        </svg>
-                    `;
-                    
-                    // Add to local watchlist set
-                    userWatchlist.add(movieTitle);
-                    
-                    // Show success toast
-                    showToast(`"${movieTitle}" added to your watchlist`, 'success');
-                } else {
-                    showToast(data.message || 'Failed to add movie to watchlist', 'error');
-                }
-            })
-            .catch(error => {
-                console.error('Error adding to watchlist:', error);
-                showToast('Error adding movie to watchlist', 'error');
-            });
-        }
-        
-        // Remove movie from watchlist
-        function removeFromWatchlist(movieTitle, buttonElement) {
-            fetch('/api/watchlist/remove', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    movie_title: movieTitle
-                })
-            })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Failed to remove movie from watchlist');
-                }
-                return response.json();
-            })
-            .then(data => {
-                if (data.success) {
-                    // Update button state
-                    buttonElement.classList.remove('in-watchlist');
-                    buttonElement.setAttribute('title', 'Add to watchlist');
-                    buttonElement.innerHTML = `
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"></path>
-                            <polyline points="17 21 17 13 7 13 7 21"></polyline>
-                            <polyline points="7 3 7 8 15 8"></polyline>
-                        </svg>
-                    `;
-                    
-                    // Remove from local watchlist set
-                    userWatchlist.delete(movieTitle);
-                    
-                    // Show success toast
-                    showToast(`"${movieTitle}" removed from your watchlist`, 'success');
-                } else {
-                    showToast(data.message || 'Failed to remove movie from watchlist', 'error');
-                }
-            })
-            .catch(error => {
-                console.error('Error removing from watchlist:', error);
-                showToast('Error removing movie from watchlist', 'error');
             });
         }
         
         // Show toast notification
         function showToast(message, type = 'success') {
+            // Remove any existing toasts
+            const existingToasts = document.querySelectorAll('.toast');
+            existingToasts.forEach(toast => toast.remove());
+            
+            // Create and show new toast
             const toastContainer = document.getElementById('toast-container');
             const toast = document.createElement('div');
-            toast.className = 'toast';
-            
-            const icon = type === 'success' ? 
-                '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="toast-icon"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>' : 
-                '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="toast-icon"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>';
-            
-            toast.innerHTML = `
-                ${icon}
-                <span class="toast-message">${message}</span>
-                <span class="toast-close">×</span>
-            `;
-            
+            toast.className = `toast ${type}`;
+            toast.textContent = message;
             toastContainer.appendChild(toast);
             
-            // Show toast with animation
-            setTimeout(() => {
-                toast.classList.add('show');
-            }, 10);
+            // Trigger reflow to ensure animation works
+            toast.offsetHeight;
             
-            // Auto-hide toast after 3 seconds
-            const hideTimeout = setTimeout(() => {
-                hideToast(toast);
+            // Show the toast
+            toast.classList.add('show');
+            
+            // Remove the toast after animation
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => toast.remove(), 300);
             }, 3000);
-            
-            // Close button click
-            toast.querySelector('.toast-close').addEventListener('click', () => {
-                clearTimeout(hideTimeout);
-                hideToast(toast);
-            });
-        }
-        
-        // Hide toast notification
-        function hideToast(toast) {
-            toast.classList.remove('show');
-            setTimeout(() => {
-                toast.remove();
-            }, 300);
         }
 
         // Add these functions for the user recommendations carousel
@@ -848,6 +779,50 @@
                 updateCarouselButtons(carousel);
             });
         });
+
+        // Function to load genre movies
+        function loadGenreMovies(carousel, genre, page) {
+            const movieList = carousel.querySelector('.movie-list');
+            
+            fetch(`/genre/${encodeURIComponent(genre)}/movies?page=${page}`)
+                .then(response => response.json())
+                .then(movies => {
+                    if (movies.length > 0) {
+                        movieList.innerHTML = movies.map(movie => `
+                            <a href="/movie/${encodeURIComponent(movie.title)}" class="movie-card-link">
+                                <div class="movie-card">
+                                    <img src="${movie.poster_url}" alt="${movie.title} poster" class="movie-poster" />
+                                    <div class="movie-info-block">
+                                        <div class="movie-title text-center">${movie.title}</div>
+                                        <p class="movie-genre text-center">${movie.genre}</p>
+                                        <p class="movie-rating text-center">${movie.rating}/10</p>
+                                    </div>
+                                    <button class="quick-add-btn" data-movie="${movie.title}" title="Add to watchlist">
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"></path>
+                                            <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                                            <polyline points="7 3 7 8 15 8"></polyline>
+                                        </svg>
+                                    </button>
+                                </div>
+                            </a>
+                        `).join('');
+                        
+                        // Setup quick add buttons for new cards
+                        setupQuickAddButtons();
+                        
+                        // Update carousel buttons visibility
+                        updateCarouselButtons(carousel);
+                    } else {
+                        // If no more movies, disable the next button
+                        const nextBtn = carousel.querySelector('.next-btn');
+                        if (nextBtn) nextBtn.classList.remove('visible');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading genre movies:', error);
+                });
+        }
     </script>
 </body>
 </html>
