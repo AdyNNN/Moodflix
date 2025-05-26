@@ -117,17 +117,17 @@
         
         .folder-content {
             padding: 1.5rem;
-            transition: max-height 0.3s ease, opacity 0.3s ease, padding 0.3s ease;
-            max-height: 2000px; /* Large enough to contain content */
+            transition: all 0.3s ease;
+            height: auto;
             opacity: 1;
-            overflow: hidden;
+            display: block;
         }
         
         .folder-section.collapsed .folder-content {
-            max-height: 0;
+            height: 0;
             opacity: 0;
-            padding-top: 0;
-            padding-bottom: 0;
+            padding: 0;
+            display: none;
         }
         
         .toggle-folder {
@@ -954,8 +954,28 @@
         // Toggle folder collapse/expand
         function toggleFolder(header) {
             const folderSection = header.closest('.folder-section');
+            const folderContent = folderSection.querySelector('.folder-content');
             const folderName = folderSection.dataset.folder;
-            folderSection.classList.toggle('collapsed');
+            
+            if (folderSection.classList.contains('collapsed')) {
+                // Expanding
+                folderSection.classList.remove('collapsed');
+                folderContent.style.display = 'block';
+                setTimeout(() => {
+                    folderContent.style.height = 'auto';
+                    folderContent.style.opacity = '1';
+                    folderContent.style.padding = '1.5rem';
+                }, 10);
+            } else {
+                // Collapsing
+                folderContent.style.height = '0';
+                folderContent.style.opacity = '0';
+                folderContent.style.padding = '0';
+                setTimeout(() => {
+                    folderSection.classList.add('collapsed');
+                    folderContent.style.display = 'none';
+                }, 300);
+            }
             
             // Save state to localStorage
             saveFolderState(folderName, folderSection.classList.contains('collapsed'));

@@ -1026,3 +1026,144 @@ main {
     height: 20%;
   }
 }
+
+/* Update folder content styles */
+.folder-content {
+    padding: 1.5rem;
+    transition: all 0.3s ease;
+    height: auto;
+    opacity: 1;
+    display: block;
+}
+
+.folder-section.collapsed .folder-content {
+    height: 0;
+    opacity: 0;
+    padding: 0;
+    display: none;
+}
+
+/* Update watchlist grid to ensure proper spacing */
+.watchlist-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 1.5rem;
+    width: 100%;
+}
+
+/* Ensure folder sections stack properly */
+.folder-section {
+    margin-bottom: 1.5rem;
+    background-color: rgba(30, 30, 30, 0.3);
+    border-radius: var(--border-radius-md);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* Folder section container */
+.folder-section {
+    margin-bottom: 2rem;
+    background-color: rgba(30, 30, 30, 0.3);
+    border-radius: var(--border-radius-md);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    overflow: hidden;
+    transition: all var(--transition-normal);
+}
+
+/* Folder content - adaptive height */
+.folder-content {
+    height: auto; /* Allow content to determine height */
+    opacity: 1;
+    visibility: visible;
+    transition: all 0.3s ease;
+    padding: 1.5rem;
+    background-color: rgba(0, 0, 0, 0.2);
+}
+
+/* Collapsed state */
+.folder-section.collapsed .folder-content {
+    height: 0;
+    opacity: 0;
+    visibility: hidden;
+    padding: 0;
+    overflow: hidden;
+}
+
+/* Grid layout for movies */
+.watchlist-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 1.5rem;
+    width: 100%;
+    height: auto; /* Allow grid to expand based on content */
+}
+
+/* Movie cards within the grid */
+.watchlist-card {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    transition: transform var(--transition-normal);
+}
+
+/* Ensure images maintain aspect ratio */
+.watchlist-poster {
+    width: 100%;
+    aspect-ratio: 2/3;
+    object-fit: cover;
+    border-radius: var(--border-radius-sm);
+}
+
+/* Folder header styling */
+.folder-header {
+    padding: 1rem 1.5rem;
+    background-color: rgba(0, 0, 0, 0.2);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    transition: background-color var(--transition-fast);
+}
+
+.folder-header:hover {
+    background-color: rgba(0, 0, 0, 0.3);
+}
+
+/* Folder section styles */
+.folder-section {
+    margin-bottom: 1.5rem;
+    background-color: rgba(30, 30, 30, 0.3);
+    border-radius: var(--border-radius-md);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* Folder content - this is the key change */
+.folder-content {
+    padding: 1.5rem;
+    transition: all 0.3s ease;
+    height: auto;
+    opacity: 1;
+    display: block;
+}
+
+/* Collapsed state */
+.folder-section.collapsed .folder-content {
+    height: 0;
+    opacity: 0;
+    padding: 0;
+    display: none;
+}
+
+/* Grid layout */
+.watchlist-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 1.5rem;
+    width: 100%;
+}
+
+/* Ensure proper spacing */
+.watchlist-container {
+    max-width: var(--content-max-width);
+    margin: 0 auto;
+    padding: var(--content-padding);
+}
