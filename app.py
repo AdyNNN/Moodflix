@@ -1206,5 +1206,86 @@ def api_user_recommendations():
     conn.close()
     return jsonify(recommendations)
 
+@app.route("/api/movies/by_genres", methods=['POST'])
+def get_movies_by_genres():
+    data = request.json
+    genres = data.get('genres', [])
+    page = data.get('page', 1)
+    page_size = 20
+    offset = (page - 1) * page_size
+    
+    conn = sqlite3.connect("moodflix.db")
+    c = conn.cursor()
+    
+    if genres:
+        # Create genre conditions
+        genre_conditions = " OR ".join([f"genre LIKE ?" for _ in genres])
+        genre_params = [f'%{genre}%' for genre in genres]
+        
+        # Get total count
+        count_query = f"""
+            SELECT COUNT(DISTINCT title)
+            FROM movies
+            WHERE ({genre_conditions})
+        """
+        c.execute(count_query, genre_params)
+        total_count = c.fetchone()[0]
+        
+        # Get paginated results
+        query = f"""
+            SELECT DISTINCT title, genre, description, rating, poster_url, trailer_url
+            FROM movies
+            WHERE ({genre_conditions})
+            ORDER BY rating DESC
+            LIMIT ? OFFSET ?
+        """
+        params = genre_params + [page_size, offset]
+        
+        c.execute(query, params)
+        
+        movies = []
+        for row in c.fetchall():
+            movies.append({
+                "title": row[0],
+                "genre": row[1],
+                "description": row[2],
+                "rating": row[3],
+                "poster_url": row[4] or "/static/posters/placeholder.jpg",
+                "trailer_url": row[5]
+            })
+    else:
+        # If no genres selected, get all movies
+        c.execute("""
+            SELECT COUNT(DISTINCT title) FROM movies
+        """)
+        total_count = c.fetchone()[0]
+        
+        c.execute("""
+            SELECT DISTINCT title, genre, description, rating, poster_url, trailer_url
+            FROM movies
+            ORDER BY rating DESC
+            LIMIT ? OFFSET ?
+        """, (page_size, offset))
+        
+        movies = []
+        for row in c.fetchall():
+            movies.append({
+                "title": row[0],
+                "genre": row[1],
+                "description": row[2],
+                "rating": row[3],
+                "poster_url": row[4] or "/static/posters/placeholder.jpg",
+                "trailer_url": row[5]
+            })
+    
+    conn.close()
+    
+    return jsonify({
+        "movies": movies,
+        "total_count": total_count,
+        "page": page,
+        "has_more": total_count > (page * page_size)
+    })
+
 if __name__ == "__main__":
     app.run(debug=True)
