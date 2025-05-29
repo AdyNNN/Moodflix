@@ -872,6 +872,12 @@
             'Documentary', 'Drama', 'Family', 'Fantasy', 'Horror',
             'Mystery', 'Romance', 'Sci-Fi', 'Thriller', 'Western'
         ].sort();
+
+        // Genre mapping for database queries
+        const genreMapping = {
+            'Sci-Fi': 'Science Fiction',
+            // Add more mappings here if needed
+        };
         
         // Keep track of selected genres
         let selectedGenres = new Set();
@@ -1172,13 +1178,18 @@
             isLoading = true;
             
             try {
+                // Map the selected genres to their database equivalents
+                const mappedGenres = Array.from(selectedGenres).map(genre => 
+                    genreMapping[genre] || genre
+                );
+
                 const response = await fetch('/api/movies/by_genres', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({
-                        genres: Array.from(selectedGenres),
+                        genres: mappedGenres,
                         page: currentPage
                     })
                 });
