@@ -144,6 +144,12 @@
         .recommendations-section {
             margin-top: 3rem;
             position: relative;
+            display: none;
+            width: 100%;
+        }
+        
+        .recommendations-section.show {
+            display: block;
         }
         
         .recommendations-title {
@@ -159,94 +165,70 @@
             text-transform: capitalize;
         }
         
-        /* Movie grid - EXACTLY 5 per row */
+        /* Movie grid styles */
+        .movie-grid-container {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            padding: 0 24px;
+            margin-left: 85px;
+            margin-top: -20px;
+        }
+
         .movie-grid {
             display: grid;
-            grid-template-columns: repeat(5, 1fr);
-            gap: 20px;
-            max-width: 1400px;
-            margin: 0 auto;
+            grid-template-columns: repeat(5, 260px);
+            gap: 24px;
+            margin: 1rem 0;
+            width: fit-content;
+            max-width: 100%;
         }
-        
-        /* Movie card styles - EXACTLY like homepage */
-        .movie-card-link {
-            text-decoration: none;
-            color: inherit;
-            display: block;
-            height: 100%;
-            position: relative;
-        }
-        
+
         .movie-card {
-            background-color: var(--card-bg);
+            position: relative;
             border-radius: var(--border-radius-md);
             overflow: hidden;
-            height: 100%;
             transition: all var(--transition-normal);
-            position: relative;
-            display: flex;
-            flex-direction: column;
+            height: 440px;
+            cursor: pointer;
+            box-shadow: var(--shadow-light);
+            background-color: var(--card-bg);
+            width: 100%;
+        }
+        
+        .movie-card:hover {
+            transform: scale(1.05);
+            box-shadow: var(--shadow-strong);
+            z-index: 2;
         }
         
         .movie-poster {
             width: 100%;
-            height: auto;
-            aspect-ratio: 2/3;
+            height: 100%;
             object-fit: cover;
             transition: transform var(--transition-normal);
-        }
-        
-        .movie-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(to bottom, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.9) 100%);
-            opacity: 0;
-            transition: opacity var(--transition-normal);
-            display: flex;
-            align-items: flex-end;
-            padding: 20px;
-        }
-        
-        .movie-description {
-            color: white;
-            font-size: 0.9rem;
-            line-height: 1.4;
-            max-height: 70%;
-            overflow-y: auto;
-            scrollbar-width: thin;
-            scrollbar-color: rgba(255,255,255,0.3) transparent;
-        }
-        
-        .movie-card:hover {
-            transform: translateY(-5px);
-            box-shadow: var(--shadow-strong);
         }
         
         .movie-card:hover .movie-poster {
             transform: scale(1.05);
         }
         
-        .movie-card:hover .movie-overlay {
-            opacity: 1;
-        }
-        
-        .movie-info-block {
-            padding: 15px;
-            flex-grow: 1;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            background: linear-gradient(to top, var(--card-bg) 0%, rgba(30, 30, 30, 0.9) 100%);
+        .movie-info-overlay {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 1.5rem 1rem 1rem;
+            background: linear-gradient(to top, rgba(0, 0, 0, 0.9) 0%, rgba(0, 0, 0, 0.6) 60%, transparent 100%);
+            transform: translateY(0);
+            transition: transform var(--transition-normal);
         }
         
         .movie-title {
             font-size: 1.1rem;
-            font-weight: 600;
-            color: var(--text);
-            margin-bottom: 8px;
+            font-weight: 700;
+            color: white;
+            margin: 0 0 0.5rem 0;
             line-height: 1.3;
             display: -webkit-box;
             -webkit-line-clamp: 2;
@@ -254,34 +236,66 @@
             overflow: hidden;
         }
         
-        .movie-meta {
-            display: flex;
-            flex-direction: column;
-            gap: 5px;
-        }
-        
         .movie-genre {
+            font-size: 0.9rem;
             color: var(--text-secondary);
-            font-size: 0.9rem;
-            margin: 0;
-        }
-        
-        .movie-details {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            color: var(--text-tertiary);
-            font-size: 0.9rem;
+            margin: 0 0 0.5rem 0;
         }
         
         .movie-rating {
-            color: var(--text-tertiary);
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
             font-size: 0.9rem;
-            margin: 0;
+            color: var(--text-tertiary);
         }
         
-        .text-center {
-            text-align: center;
+        .movie-rating::before {
+            content: "★";
+            color: #ffc107;
+        }
+
+        @media (max-width: 1400px) {
+            .movie-grid-container {
+                margin-left: 30px;
+            }
+            .movie-grid {
+                grid-template-columns: repeat(4, 260px);
+            }
+        }
+        
+        @media (max-width: 1100px) {
+            .movie-grid-container {
+                margin-left: 20px;
+            }
+            .movie-grid {
+                grid-template-columns: repeat(3, 260px);
+            }
+        }
+        
+        @media (max-width: 850px) {
+            .movie-grid-container {
+                margin-left: 10px;
+            }
+            .movie-grid {
+                grid-template-columns: repeat(2, 260px);
+            }
+            .movie-card {
+                height: 380px;
+            }
+        }
+        
+        @media (max-width: 580px) {
+            .movie-grid-container {
+                padding: 0 16px;
+                margin-left: 0;
+            }
+            .movie-grid {
+                grid-template-columns: repeat(1, 260px);
+            }
+            .movie-card {
+                height: 440px;
+            }
         }
         
         /* Loading and no results states */
@@ -303,31 +317,6 @@
             60%, 100% { content: "..."; }
         }
         
-        /* Responsive adjustments */
-        @media (max-width: 1200px) {
-            .movie-grid {
-                grid-template-columns: repeat(4, 1fr);
-            }
-        }
-        
-        @media (max-width: 992px) {
-            .movie-grid {
-                grid-template-columns: repeat(3, 1fr);
-            }
-        }
-        
-        @media (max-width: 768px) {
-            .movie-grid {
-                grid-template-columns: repeat(2, 1fr);
-            }
-        }
-        
-        @media (max-width: 480px) {
-            .movie-grid {
-                grid-template-columns: 1fr;
-            }
-        }
-
         /* Navbar styling */
         nav {
             display: flex;
@@ -762,69 +751,101 @@
         /* Sort dropdown styles */
         .sort-dropdown {
             position: relative;
-            display: inline-block;
-            margin-left: 10px;
+            margin: 1rem 0 1rem -10px;
+            width: fit-content;
+            z-index: 100;
+            opacity: 1;
+            transform: translateY(0);
+            transition: all 0.3s ease;
+            align-self: flex-start;
         }
-
+        
         .sort-dropdown-btn {
-            background-color: rgba(20, 20, 20, 0.7);
+            background: rgba(51, 51, 51, 0.7);
             color: var(--text);
             border: 1px solid rgba(255, 255, 255, 0.2);
             border-radius: 4px;
-            padding: 8px 12px;
-            font-size: 14px;
+            padding: 0.75rem 1.5rem;
+            font-size: 1rem;
+            font-weight: 500;
             cursor: pointer;
-            transition: all 0.3s ease;
             display: flex;
             align-items: center;
-            gap: 5px;
+            gap: 0.5rem;
+            transition: all 0.2s ease;
+            backdrop-filter: blur(8px);
         }
-
+        
         .sort-dropdown-btn:hover {
-            background-color: rgba(30, 30, 30, 0.9);
+            background: rgba(51, 51, 51, 0.9);
+            border-color: var(--primary);
+            transform: translateY(-2px);
         }
-
+        
         .sort-dropdown-content {
             position: absolute;
             top: 100%;
-            right: 0;
-            background-color: rgba(30, 30, 30, 0.95);
-            border-radius: var(--border-radius-sm);
-            box-shadow: var(--shadow-medium);
-            min-width: 180px;
-            z-index: 100;
-            margin-top: 5px;
-            overflow: hidden;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(30, 30, 30, 0.95);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            min-width: 200px;
+            margin-top: 0.5rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
             display: none;
+            backdrop-filter: blur(8px);
         }
-
+        
         .sort-dropdown-content.show {
             display: block;
+            animation: fadeIn 0.2s ease;
         }
-
+        
         .sort-option {
-            display: block;
-            padding: 10px 15px;
+            padding: 0.75rem 1rem;
             color: var(--text);
-            text-decoration: none;
-            transition: all var(--transition-fast);
             cursor: pointer;
+            transition: all 0.2s ease;
+            display: block;
+            text-align: left;
         }
-
+        
         .sort-option:hover {
-            background-color: rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.1);
             color: var(--primary);
         }
-
+        
         .sort-option.active {
-            background-color: var(--primary);
+            background: var(--primary);
             color: white;
         }
-
-        .movie-card-container {
-            position: relative;
-            width: 100%;
-            height: 100%;
+        
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translate(-50%, -10px);
+            }
+            to {
+                opacity: 1;
+                transform: translate(-50%, 0);
+            }
+        }
+        
+        /* Responsive adjustments for sort dropdown */
+        @media (max-width: 768px) {
+            .sort-dropdown-btn {
+                padding: 0.6rem 1.2rem;
+                font-size: 0.95rem;
+            }
+            
+            .sort-dropdown-content {
+                min-width: 180px;
+            }
+            
+            .sort-option {
+                padding: 0.6rem 0.8rem;
+            }
         }
 
         /* Load more button styles */
@@ -966,7 +987,7 @@
 
                 <div class="sort-dropdown">
                     <button class="sort-dropdown-btn" id="sort-dropdown-btn">
-                        <span id="current-sort">Sort by</span>
+                        <span id="current-sort">Title (A-Z)</span>
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
                     </button>
                     <div class="sort-dropdown-content" id="sort-dropdown-content">
@@ -979,8 +1000,9 @@
                     </div>
                 </div>
                 
-                <h2 class="recommendations-title">Movies for your <span id="selected-mood" class="mood-name">mood</span></h2>
-                <div class="movie-grid" id="movie-grid"></div>
+                <div class="movie-grid-container">
+                    <div class="movie-grid" id="movie-grid"></div>
+                </div>
                 <button class="load-more-btn" id="load-more-btn">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <circle cx="12" cy="12" r="10"></circle>
@@ -991,7 +1013,7 @@
             </section>
             
             <div id="loading" class="loading" style="display: none;">
-                Finding the perfect movies for your mood
+                Finding movies for you
             </div>
             
             <div id="no-results" class="no-results" style="display: none;">
@@ -1096,47 +1118,31 @@
             getRecommendationsBtn.addEventListener('click', function() {
                 if (selectedMoods.length === 0) return;
                 
-                // Update display text
-                if (selectedMoods.length === 1) {
-                    selectedMoodSpan.textContent = selectedMoods[0];
-                } else {
-                    selectedMoodSpan.textContent = selectedMoods.join(', ');
-                }
-                
                 // Show loading
                 loadingElement.style.display = 'block';
+                moodSelectionSection.style.display = 'none';
                 recommendationsSection.style.display = 'none';
                 noResultsElement.style.display = 'none';
                 movieGrid.innerHTML = '';
+                displayedMovies.clear();
+                currentPage = 1;
                 
-                // Hide mood selection with animation
-                moodSelectionSection.classList.add('fade-out');
-                
-                setTimeout(() => {
-                    moodSelectionSection.style.display = 'none';
-                    moodSelectionSection.classList.remove('fade-out');
-                    
-                    // Fetch movie recommendations
-                    fetchMoviesByMoods(selectedMoods);
-                }, 500);
+                // Fetch movie recommendations
+                fetchMoviesByMoods(selectedMoods);
             });
             
             // Change mood button
             changeMoodBtn.addEventListener('click', function() {
                 // Hide recommendations with animation
-                recommendationsSection.classList.add('fade-out');
+                recommendationsSection.classList.remove('show');
+                recommendationsSection.style.display = 'none';
+                
+                // Show mood selection
+                moodSelectionSection.style.display = 'block';
+                moodSelectionSection.classList.add('fade-in');
                 
                 setTimeout(() => {
-                    recommendationsSection.style.display = 'none';
-                    recommendationsSection.classList.remove('fade-out');
-                    
-                    // Show mood selection with animation
-                    moodSelectionSection.style.display = 'block';
-                    moodSelectionSection.classList.add('fade-in');
-                    
-                    setTimeout(() => {
-                        moodSelectionSection.classList.remove('fade-in');
-                    }, 500);
+                    moodSelectionSection.classList.remove('fade-in');
                 }, 500);
             });
             
@@ -1166,6 +1172,7 @@
                             
                             // Show recommendations section
                             recommendationsSection.style.display = 'block';
+                            recommendationsSection.classList.add('show');
                             
                             // Update Netflix-style mood display
                             updateNetflixMoodDisplay();
@@ -1176,7 +1183,6 @@
                                     displayedMovies.add(movie.title);
                                     const cardContainer = document.createElement('div');
                                     cardContainer.className = 'movie-card-container';
-                                    cardContainer.style.position = 'relative';
                                     
                                     const cardLink = document.createElement('a');
                                     cardLink.href = `/movie/${encodeURIComponent(movie.title)}`;
@@ -1185,23 +1191,7 @@
                                     // Check if movie is in watchlist
                                     const inWatchlist = userWatchlist.has(movie.title);
                                     
-                                    cardLink.innerHTML = `
-                                        <div class="movie-card">
-                                            <img src="${movie.poster_url}" alt="${movie.title} poster" class="movie-poster" />
-                                            <div class="movie-info-block">
-                                                <div class="movie-title text-center">${movie.title}</div>
-                                                <p class="movie-genre text-center">${movie.genre}</p>
-                                                <p class="movie-rating text-center">${movie.rating}/10</p>
-                                            </div>
-                                            <button class="quick-add-btn ${inWatchlist ? 'in-watchlist' : ''}" data-movie="${movie.title}" title="${inWatchlist ? 'Remove from watchlist' : 'Add to watchlist'}">
-                                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                                    ${inWatchlist ? 
-                                                        '<path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"></path>' : 
-                                                        '<path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline>'}
-                                                </svg>
-                                            </button>
-                                        </div>
-                                    `;
+                                    cardLink.innerHTML = createMovieCard(movie);
                                     
                                     cardContainer.appendChild(cardLink);
                                     movieGrid.appendChild(cardContainer);
@@ -1387,44 +1377,28 @@
             
             // Show toast notification
             function showToast(message, type = 'success') {
+                // Remove any existing toasts
+                const existingToasts = document.querySelectorAll('.toast');
+                existingToasts.forEach(toast => toast.remove());
+                
+                // Create and show new toast
+                const toastContainer = document.getElementById('toast-container');
                 const toast = document.createElement('div');
-                toast.className = 'toast';
-                
-                const icon = type === 'success' ? 
-                    '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="toast-icon"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>' : 
-                    '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="toast-icon"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12" y2="16"></line></svg>';
-                
-                toast.innerHTML = `
-                    ${icon}
-                    <span class="toast-message">${message}</span>
-                    <span class="toast-close">×</span>
-                `;
-                
+                toast.className = `toast ${type}`;
+                toast.textContent = message;
                 toastContainer.appendChild(toast);
                 
-                // Show toast with animation
-                setTimeout(() => {
-                    toast.classList.add('show');
-                }, 10);
+                // Trigger reflow to ensure animation works
+                toast.offsetHeight;
                 
-                // Auto-hide toast after 3 seconds
-                const hideTimeout = setTimeout(() => {
-                    hideToast(toast);
+                // Show the toast
+                toast.classList.add('show');
+                
+                // Remove the toast after animation
+                setTimeout(() => {
+                    toast.classList.remove('show');
+                    setTimeout(() => toast.remove(), 300);
                 }, 3000);
-                
-                // Close button click
-                toast.querySelector('.toast-close').addEventListener('click', () => {
-                    clearTimeout(hideTimeout);
-                    hideToast(toast);
-                });
-            }
-            
-            // Hide toast notification
-            function hideToast(toast) {
-                toast.classList.remove('show');
-                setTimeout(() => {
-                    toast.remove();
-                }, 300);
             }
             
             // Update Netflix-style mood display
@@ -1550,6 +1524,27 @@
                 this.classList.add('loading');
                 fetchMoviesByMoods(selectedMoods);
             });
+
+            function createMovieCard(movie) {
+                const inWatchlist = userWatchlist.has(movie.title);
+                return `
+                    <div class="movie-card">
+                        <img src="${movie.poster_url}" alt="${movie.title} poster" class="movie-poster" />
+                        <div class="movie-info-overlay">
+                            <div class="movie-title">${movie.title}</div>
+                            <p class="movie-genre">${movie.genre}</p>
+                            <div class="movie-rating">${movie.rating}</div>
+                        </div>
+                        <button class="quick-add-btn ${inWatchlist ? 'in-watchlist' : ''}" data-movie="${movie.title}" title="${inWatchlist ? 'Remove from watchlist' : 'Add to watchlist'}">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                ${inWatchlist ? 
+                                    '<path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"></path>' : 
+                                    '<path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline>'}
+                            </svg>
+                        </button>
+                    </div>
+                `;
+            }
         });
     </script>
 </body>
