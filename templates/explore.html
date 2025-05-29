@@ -7,6 +7,116 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet" />
     <style>
+        /* Navbar styling */
+        nav {
+            display: flex;
+            justify-content: center;
+            flex: 1;
+            margin-left: 215px;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 2rem;
+            background-color: rgba(0, 0, 0, 0.8);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .logo {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .search-profile {
+            display: flex;
+            align-items: center;
+        }
+
+        /* User dropdown styles */
+        .user-dropdown {
+            position: relative;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+        }
+
+        .label, .username {
+            font-size: 14px;
+            color: var(--text);
+        }
+
+        .label {
+            color: var(--text-secondary);
+            margin-right: -4px;
+        }
+
+        .username {
+            font-weight: 600;
+        }
+
+        .dropdown-menu {
+            display: none;
+            position: absolute;
+            top: 100%;
+            right: 0;
+            background-color: rgba(30, 30, 30, 0.95);
+            border-radius: var(--border-radius-sm);
+            box-shadow: var(--shadow-medium);
+            min-width: 150px;
+            z-index: 100;
+            margin-top: 10px;
+            overflow: hidden;
+        }
+
+        .dropdown-menu a {
+            display: block;
+            padding: 10px 15px;
+            color: var(--text);
+            text-decoration: none;
+            transition: all var(--transition-fast);
+        }
+
+        .dropdown-menu a:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+            color: var(--primary);
+        }
+
+        /* Search container styles */
+        .search-container {
+            margin-right: 20px;
+        }
+
+        .search-container form {
+            display: flex;
+            align-items: center;
+        }
+
+        .search-container input {
+            background-color: rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 14px;
+            width: 200px;
+            transition: all 0.3s ease;
+        }
+
+        .search-container input:focus {
+            outline: none;
+            border-color: var(--primary);
+            width: 240px;
+        }
+
+        .search-container input::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+        }
+
         /* Genre filter styles */
         .genre-filters {
             display: grid;
@@ -346,7 +456,7 @@
             gap: 20px;
             max-width: 1400px;
             width: 100%;
-            margin: 2rem auto;
+            margin: 0 auto 2rem;
             padding: 0 2rem;
         }
         
@@ -491,6 +601,111 @@
                 height: 440px;
             }
         }
+        
+        /* Sort dropdown styles */
+        .sort-dropdown {
+            position: relative;
+            margin: 2rem 0 2rem -4rem;
+            width: fit-content;
+            z-index: 100;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.3s ease;
+            align-self: flex-start;
+        }
+        
+        .sort-dropdown.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        .sort-dropdown-btn {
+            background: rgba(51, 51, 51, 0.7);
+            color: var(--text);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+            padding: 0.75rem 1.5rem;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.2s ease;
+            backdrop-filter: blur(8px);
+        }
+        
+        .sort-dropdown-btn:hover {
+            background: rgba(51, 51, 51, 0.9);
+            border-color: var(--primary);
+            transform: translateY(-2px);
+        }
+        
+        .sort-dropdown-content {
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(30, 30, 30, 0.95);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            min-width: 200px;
+            margin-top: 0.5rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            display: none;
+            backdrop-filter: blur(8px);
+        }
+        
+        .sort-dropdown-content.show {
+            display: block;
+            animation: fadeIn 0.2s ease;
+        }
+        
+        .sort-option {
+            padding: 0.75rem 1rem;
+            color: var(--text);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: block;
+            text-align: left;
+        }
+        
+        .sort-option:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--primary);
+        }
+        
+        .sort-option.active {
+            background: var(--primary);
+            color: white;
+        }
+        
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translate(-50%, -10px);
+            }
+            to {
+                opacity: 1;
+                transform: translate(-50%, 0);
+            }
+        }
+        
+        /* Responsive adjustments for sort dropdown */
+        @media (max-width: 768px) {
+            .sort-dropdown-btn {
+                padding: 0.6rem 1.2rem;
+                font-size: 0.95rem;
+            }
+            
+            .sort-dropdown-content {
+                min-width: 180px;
+            }
+            
+            .sort-option {
+                padding: 0.6rem 0.8rem;
+            }
+        }
     </style>
 </head>
 <body>
@@ -551,6 +766,21 @@
                 </button>
             </div>
             
+            <div class="sort-dropdown" style="display: none;">
+                <button class="sort-dropdown-btn" id="sort-dropdown-btn">
+                    <span id="current-sort">Sort by</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                </button>
+                <div class="sort-dropdown-content" id="sort-dropdown-content">
+                    <a class="sort-option active" data-sort="title" data-order="asc">Title (A-Z)</a>
+                    <a class="sort-option" data-sort="title" data-order="desc">Title (Z-A)</a>
+                    <a class="sort-option" data-sort="rating" data-order="desc">Rating (High to Low)</a>
+                    <a class="sort-option" data-sort="rating" data-order="asc">Rating (Low to High)</a>
+                    <a class="sort-option" data-sort="release" data-order="desc">Date (Newest First)</a>
+                    <a class="sort-option" data-sort="release" data-order="asc">Date (Oldest First)</a>
+                </div>
+            </div>
+            
             <div class="movie-grid" id="movie-grid">
                 <!-- Movies will be populated dynamically -->
             </div>
@@ -595,6 +825,13 @@
             const showGenresBtn = document.getElementById('show-genres-btn');
             showGenresBtn.classList.add('visible');
             
+            // Show the sort dropdown
+            const sortDropdown = document.querySelector('.sort-dropdown');
+            sortDropdown.style.display = 'block';
+            setTimeout(() => {
+                sortDropdown.classList.add('show');
+            }, 50);
+            
             // Reset and load movies
             currentPage = 1;
             hasMore = true;
@@ -608,11 +845,18 @@
             const genreFilters = document.getElementById('genre-filters');
             const showGenresBtn = document.getElementById('show-genres-btn');
             const selectedGenresContainer = document.getElementById('selected-genres-container');
+            const sortDropdown = document.querySelector('.sort-dropdown');
             
             if (genreFilters.classList.contains('hidden')) {
                 genreFilters.classList.remove('hidden');
                 showGenresBtn.classList.remove('visible');
                 selectedGenresContainer.classList.add('hidden');
+                
+                // Hide sort dropdown with animation
+                sortDropdown.classList.remove('show');
+                setTimeout(() => {
+                    sortDropdown.style.display = 'none';
+                }, 300);
                 
                 // Clear existing movies when showing genres
                 document.getElementById('movie-grid').innerHTML = '';
@@ -693,6 +937,31 @@
             // Change Genres button click handler
             const showGenresBtn = document.getElementById('show-genres-btn');
             showGenresBtn.addEventListener('click', handleChangeGenresClick);
+
+            // Sort dropdown functionality
+            const sortDropdownBtn = document.getElementById('sort-dropdown-btn');
+            const sortDropdownContent = document.getElementById('sort-dropdown-content');
+            const currentSortText = document.getElementById('current-sort');
+            const sortOptions = document.querySelectorAll('.sort-option');
+
+            // Toggle dropdown
+            sortDropdownBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                sortDropdownContent.classList.toggle('show');
+            });
+
+            // Close dropdown when clicking outside
+            document.addEventListener('click', (e) => {
+                if (!e.target.closest('.sort-dropdown')) {
+                    sortDropdownContent.classList.remove('show');
+                }
+            });
+
+            // Initialize current sort text
+            const activeOption = document.querySelector('.sort-option.active');
+            if (activeOption) {
+                currentSortText.textContent = activeOption.textContent;
+            }
         });
         
         // Load movies based on selected genres
@@ -777,6 +1046,142 @@
             if (dropdown && !e.target.closest('.user-dropdown')) {
                 dropdown.style.display = 'none';
             }
+        });
+
+        // Merge sort implementation
+        function mergeSort(arr, sortBy, order) {
+            if (arr.length <= 1) return arr;
+
+            const mid = Math.floor(arr.length / 2);
+            const left = arr.slice(0, mid);
+            const right = arr.slice(mid);
+
+            return merge(
+                mergeSort(left, sortBy, order),
+                mergeSort(right, sortBy, order),
+                sortBy,
+                order
+            );
+        }
+
+        function merge(left, right, sortBy, order) {
+            let result = [];
+            let leftIndex = 0;
+            let rightIndex = 0;
+
+            while (leftIndex < left.length && rightIndex < right.length) {
+                let comparison;
+                
+                switch (sortBy) {
+                    case 'title':
+                        comparison = left[leftIndex].title.toLowerCase().localeCompare(right[rightIndex].title.toLowerCase());
+                        break;
+                    case 'rating':
+                        comparison = parseFloat(left[leftIndex].rating) - parseFloat(right[rightIndex].rating);
+                        break;
+                    case 'release':
+                        const leftDate = new Date(left[leftIndex].release_date || '1900-01-01');
+                        const rightDate = new Date(right[rightIndex].release_date || '1900-01-01');
+                        comparison = leftDate - rightDate;
+                        break;
+                    default:
+                        comparison = 0;
+                }
+
+                // Adjust comparison based on sort order
+                if (order === 'desc') {
+                    comparison = -comparison;
+                }
+
+                if (comparison <= 0) {
+                    result.push(left[leftIndex]);
+                    leftIndex++;
+                } else {
+                    result.push(right[rightIndex]);
+                    rightIndex++;
+                }
+            }
+
+            return result.concat(left.slice(leftIndex)).concat(right.slice(rightIndex));
+        }
+
+        // Function to sort movies using merge sort
+        function sortMovies() {
+            const sortBy = document.getElementById("sort-options").value;
+            const movieGrid = document.getElementById("movie-grid");
+            const movies = Array.from(movieGrid.children);
+            
+            // Extract movie data from the DOM
+            const movieData = movies.map(movieCard => {
+                const titleElement = movieCard.querySelector('.movie-title');
+                const ratingElement = movieCard.querySelector('.movie-rating');
+                const releaseDateElement = movieCard.querySelector('[data-release-date]');
+                
+                return {
+                    element: movieCard,
+                    title: titleElement ? titleElement.textContent : '',
+                    rating: ratingElement ? parseFloat(ratingElement.textContent) : 0,
+                    release_date: releaseDateElement ? releaseDateElement.getAttribute('data-release-date') : ''
+                };
+            });
+
+            // Perform merge sort
+            const sortedMovies = mergeSort(movieData, sortBy, 'desc');
+
+            // Clear the movie grid
+            movieGrid.innerHTML = '';
+
+            // Append sorted movies back to the grid
+            sortedMovies.forEach(movie => {
+                movieGrid.appendChild(movie.element);
+            });
+        }
+
+        // Update the sort option click handler
+        sortOptions.forEach(option => {
+            option.addEventListener('click', function() {
+                // Update active state
+                sortOptions.forEach(opt => opt.classList.remove('active'));
+                this.classList.add('active');
+                
+                // Get sort parameters
+                const sortBy = this.getAttribute('data-sort');
+                const sortOrder = this.getAttribute('data-order');
+                
+                // Update current sort text
+                let sortText = this.textContent;
+                currentSortText.textContent = sortText;
+                
+                // Get current movies and sort them
+                const movieGrid = document.getElementById('movie-grid');
+                const movies = Array.from(movieGrid.children);
+                
+                // Extract movie data
+                const movieData = movies.map(movieCard => {
+                    const titleElement = movieCard.querySelector('.movie-title');
+                    const ratingElement = movieCard.querySelector('.movie-rating');
+                    const releaseDateElement = movieCard.querySelector('[data-release-date]');
+                    
+                    return {
+                        element: movieCard,
+                        title: titleElement ? titleElement.textContent : '',
+                        rating: ratingElement ? parseFloat(ratingElement.textContent) : 0,
+                        release_date: releaseDateElement ? releaseDateElement.getAttribute('data-release-date') : ''
+                    };
+                });
+                
+                // Perform merge sort
+                const sortedMovies = mergeSort(movieData, sortBy, sortOrder);
+                
+                // Clear and repopulate the movie grid
+                movieGrid.innerHTML = '';
+                sortedMovies.forEach(movie => {
+                    movieGrid.appendChild(movie.element);
+                });
+                
+                // Close dropdown
+                sortDropdownContent.classList.remove('show');
+            });
         });
     </script>
 </body>
