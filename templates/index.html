@@ -386,7 +386,7 @@
             <section class="genre-section">
                 <div class="genre-header">
                     <h2>{{ genre }}</h2>
-                    <a href="{{ url_for('explore') }}" class="explore-all-link" style="position: relative; top: 45px; right: -1px;">Explore All</a>
+                    <a href="{{ url_for('explore') }}?genre={{ genre }}" class="explore-all-link" style="position: relative; top: 45px; right: -1px;">Explore All</a>
                 </div>
                 <div class="genre-carousel" data-genre="{{ genre }}" data-page="0">
 					<button class="carousel-btn prev-btn" onclick="loadPrev(this)">

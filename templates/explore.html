@@ -890,6 +890,12 @@
         let userWatchlist = new Set();
         const isLoggedIn = document.querySelector('.username') !== null;
 
+        // Get genre from URL parameter
+        function getGenreFromURL() {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get('genre');
+        }
+
         // Fetch user's watchlist
         function fetchUserWatchlist() {
             if (!isLoggedIn) return Promise.resolve();
@@ -933,6 +939,33 @@
                     console.error('Error fetching watchlist:', error);
                     return Promise.resolve();
                 });
+        }
+
+        // Pre-select genre if provided in URL
+        function preSelectGenre() {
+            const genre = getGenreFromURL();
+            if (genre) {
+                const genreBtn = Array.from(document.querySelectorAll('.genre-btn'))
+                    .find(btn => btn.textContent === genre);
+                if (genreBtn) {
+                    toggleGenre(genre, genreBtn);
+                    handleViewMoviesClick();
+                }
+            }
+        }
+
+        // Initialize genre buttons
+        function initializeGenreButtons() {
+            const genreFilters = document.getElementById('genre-filters');
+            genres.forEach(genre => {
+                const button = document.createElement('button');
+                button.className = 'genre-btn';
+                button.textContent = genre;
+                button.addEventListener('click', () => toggleGenre(genre, button));
+                genreFilters.appendChild(button);
+            });
+            // Pre-select genre if provided in URL
+            preSelectGenre();
         }
 
         // Show toast notification
@@ -1062,18 +1095,6 @@
             } else {
                 viewMoviesContainer.classList.remove('show');
             }
-        }
-
-        // Initialize genre buttons
-        function initializeGenreButtons() {
-            const genreFilters = document.getElementById('genre-filters');
-            genres.forEach(genre => {
-                const button = document.createElement('button');
-                button.className = 'genre-btn';
-                button.textContent = genre;
-                button.addEventListener('click', () => toggleGenre(genre, button));
-                genreFilters.appendChild(button);
-            });
         }
 
         // Add event listeners
