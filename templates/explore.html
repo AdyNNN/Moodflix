@@ -194,7 +194,7 @@
         .view-movies-container {
             display: flex;
             justify-content: center;
-            margin: -4rem 0;
+            margin: -2rem 0;
             opacity: 0;
             transform: translateY(20px);
             transition: all 0.3s ease;
@@ -402,7 +402,7 @@
         .explore-container {
             max-width: 1400px;
             margin: 0 auto;
-            padding: var(--content-padding);
+            padding: 2rem;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -450,16 +450,23 @@
         }
         
         /* Movie grid styles */
+        .movie-grid-container {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            padding: 0 24px;
+            margin-left: 100px;
+        }
+
         .movie-grid {
             display: grid;
-            grid-template-columns: repeat(5, 1fr);
-            gap: 20px;
-            max-width: 1400px;
-            width: 100%;
-            margin: 0 auto 2rem;
-            padding: 0 2rem;
+            grid-template-columns: repeat(5, 260px);
+            gap: 24px;
+            margin: 2rem 0;
+            width: fit-content;
+            max-width: 100%;
         }
-        
+
         .movie-card {
             position: relative;
             border-radius: var(--border-radius-md);
@@ -469,6 +476,7 @@
             cursor: pointer;
             box-shadow: var(--shadow-light);
             background-color: var(--card-bg);
+            width: 100%;
         }
         
         .movie-card:hover {
@@ -557,49 +565,16 @@
             background-color: var(--primary);
             transform: scale(1.1);
         }
+
+        .quick-add-btn.in-watchlist {
+            opacity: 1;
+            background-color: var(--primary);
+        }
         
         .quick-add-btn svg {
             width: 20px;
             height: 20px;
             stroke: white;
-        }
-        
-        /* Responsive adjustments for movie grid */
-        @media (max-width: 1400px) {
-            .movie-grid {
-                grid-template-columns: repeat(4, 1fr);
-                max-width: 1200px;
-            }
-        }
-        
-        @media (max-width: 1200px) {
-            .movie-grid {
-                grid-template-columns: repeat(3, 1fr);
-                max-width: 1000px;
-            }
-        }
-        
-        @media (max-width: 768px) {
-            .movie-grid {
-                grid-template-columns: repeat(2, 1fr);
-                gap: 15px;
-                padding: 0 1rem;
-            }
-            
-            .movie-card {
-                height: 380px;
-            }
-        }
-        
-        @media (max-width: 480px) {
-            .movie-grid {
-                grid-template-columns: 1fr;
-                max-width: 300px;
-            }
-            
-            .movie-card {
-                height: 440px;
-            }
         }
         
         /* Sort dropdown styles */
@@ -706,6 +681,94 @@
                 padding: 0.6rem 0.8rem;
             }
         }
+
+        /* Toast notification */
+        .toast-container {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+
+        .toast {
+            background-color: rgba(20, 20, 20, 0.9);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 4px;
+            margin-top: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transform: translateX(120%);
+            transition: transform 0.3s ease;
+            border-left: 4px solid var(--primary);
+        }
+
+        .toast.show {
+            transform: translateX(0);
+        }
+
+        .toast-icon {
+            color: var(--primary);
+        }
+
+        .toast-message {
+            flex: 1;
+        }
+
+        .toast-close {
+            cursor: pointer;
+            opacity: 0.7;
+            transition: opacity 0.2s ease;
+        }
+
+        .toast-close:hover {
+            opacity: 1;
+        }
+
+        @media (max-width: 1400px) {
+            .movie-grid-container {
+                margin-left: 80px;
+            }
+            .movie-grid {
+                grid-template-columns: repeat(4, 260px);
+            }
+        }
+        
+        @media (max-width: 1100px) {
+            .movie-grid-container {
+                margin-left: 60px;
+            }
+            .movie-grid {
+                grid-template-columns: repeat(3, 260px);
+            }
+        }
+        
+        @media (max-width: 850px) {
+            .movie-grid-container {
+                margin-left: 40px;
+            }
+            .movie-grid {
+                grid-template-columns: repeat(2, 260px);
+            }
+            .movie-card {
+                height: 380px;
+            }
+        }
+        
+        @media (max-width: 580px) {
+            .movie-grid-container {
+                padding: 0 16px;
+                margin-left: 0;
+            }
+            .movie-grid {
+                grid-template-columns: repeat(1, 260px);
+            }
+            .movie-card {
+                height: 440px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -781,8 +844,10 @@
                 </div>
             </div>
             
-            <div class="movie-grid" id="movie-grid">
-                <!-- Movies will be populated dynamically -->
+            <div class="movie-grid-container">
+                <div class="movie-grid" id="movie-grid">
+                    <!-- Movies will be populated dynamically -->
+                </div>
             </div>
             
             <div id="loading" class="loading" style="display: none;">
@@ -797,6 +862,9 @@
         </div>
     </main>
     
+    <!-- Toast container for notifications -->
+    <div class="toast-container" id="toast-container"></div>
+
     <script>
         // List of available genres
         const genres = [
@@ -811,6 +879,81 @@
         let isLoading = false;
         let hasMore = true;
         
+        // Initialize watchlist state
+        let userWatchlist = new Set();
+        const isLoggedIn = document.querySelector('.username') !== null;
+
+        // Fetch user's watchlist
+        function fetchUserWatchlist() {
+            if (!isLoggedIn) return Promise.resolve();
+            
+            return fetch('/api/watchlist/get')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Failed to fetch watchlist');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    userWatchlist.clear();
+                    try {
+                        if (data && data.watchlist) {
+                            // Handle both array and object formats
+                            if (Array.isArray(data.watchlist)) {
+                                data.watchlist.forEach(movie => {
+                                    if (movie.title) {
+                                        userWatchlist.add(movie.title);
+                                    }
+                                });
+                            } else {
+                                // Handle folder structure
+                                Object.values(data.watchlist).forEach(folder => {
+                                    if (folder.movies && Array.isArray(folder.movies)) {
+                                        folder.movies.forEach(movie => {
+                                            if (movie.title) {
+                                                userWatchlist.add(movie.title);
+                                            }
+                                        });
+                                    }
+                                });
+                            }
+                        }
+                    } catch (error) {
+                        console.error('Error processing watchlist data:', error);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching watchlist:', error);
+                    return Promise.resolve();
+                });
+        }
+
+        // Show toast notification
+        function showToast(message, type = 'success') {
+            // Remove any existing toasts
+            const existingToasts = document.querySelectorAll('.toast');
+            existingToasts.forEach(toast => toast.remove());
+            
+            // Create and show new toast
+            const toastContainer = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.textContent = message;
+            toastContainer.appendChild(toast);
+            
+            // Trigger reflow to ensure animation works
+            toast.offsetHeight;
+            
+            // Show the toast
+            toast.classList.add('show');
+            
+            // Remove the toast after animation
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
         // ===== View Movies Button Functionality =====
         function handleViewMoviesClick() {
             // Hide genre filters with animation
@@ -942,13 +1085,17 @@
             const sortDropdownBtn = document.getElementById('sort-dropdown-btn');
             const sortDropdownContent = document.getElementById('sort-dropdown-content');
             const currentSortText = document.getElementById('current-sort');
+            
+            // Get all sort options
             const sortOptions = document.querySelectorAll('.sort-option');
 
             // Toggle dropdown
-            sortDropdownBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                sortDropdownContent.classList.toggle('show');
-            });
+            if (sortDropdownBtn) {
+                sortDropdownBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    sortDropdownContent.classList.toggle('show');
+                });
+            }
 
             // Close dropdown when clicking outside
             document.addEventListener('click', (e) => {
@@ -958,9 +1105,61 @@
             });
 
             // Initialize current sort text
-            const activeOption = document.querySelector('.sort-option.active');
-            if (activeOption) {
-                currentSortText.textContent = activeOption.textContent;
+            if (sortOptions.length > 0) {
+                const activeOption = document.querySelector('.sort-option.active');
+                if (activeOption) {
+                    currentSortText.textContent = activeOption.textContent;
+                }
+            }
+
+            // Add click handlers for sort options
+            sortOptions.forEach(option => {
+                option.addEventListener('click', function() {
+                    // Update active state
+                    sortOptions.forEach(opt => opt.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    // Get sort parameters
+                    const sortBy = this.getAttribute('data-sort');
+                    const sortOrder = this.getAttribute('data-order');
+                    
+                    // Update current sort text
+                    currentSortText.textContent = this.textContent;
+                    
+                    // Get current movies and sort them
+                    const movieGrid = document.getElementById('movie-grid');
+                    const movies = Array.from(movieGrid.children);
+                    
+                    // Extract movie data
+                    const movieData = movies.map(movieCard => {
+                        const titleElement = movieCard.querySelector('.movie-title');
+                        const ratingElement = movieCard.querySelector('.movie-rating');
+                        const releaseDateElement = movieCard.querySelector('[data-release-date]');
+                        
+                        return {
+                            element: movieCard,
+                            title: titleElement ? titleElement.textContent : '',
+                            rating: ratingElement ? parseFloat(ratingElement.textContent) : 0,
+                            release_date: releaseDateElement ? releaseDateElement.getAttribute('data-release-date') : ''
+                        };
+                    });
+                    
+                    // Perform merge sort
+                    const sortedMovies = mergeSort(movieData, sortBy, sortOrder);
+                    
+                    // Clear and repopulate the movie grid
+                    movieGrid.innerHTML = '';
+                    sortedMovies.forEach(movie => {
+                        movieGrid.appendChild(movie.element);
+                    });
+                    
+                    // Close dropdown
+                    sortDropdownContent.classList.remove('show');
+                });
+            });
+
+            if (isLoggedIn) {
+                fetchUserWatchlist();
             }
         });
         
@@ -992,6 +1191,9 @@
                     movieGrid.appendChild(movieCard);
                 });
                 
+                // Setup quick add buttons for new movies
+                setupQuickAddButtons();
+                
                 hasMore = data.has_more;
                 currentPage++;
                 
@@ -1007,7 +1209,9 @@
         function createMovieCard(movie) {
             const card = document.createElement('div');
             card.className = 'movie-card';
-            card.onclick = () => window.location.href = `/movie/${encodeURIComponent(movie.title)}`;
+            
+            // Check if movie is in watchlist
+            const inWatchlist = userWatchlist.has(movie.title);
             
             card.innerHTML = `
                 <img src="${movie.poster_url}" alt="${movie.title} poster" class="movie-poster">
@@ -1016,16 +1220,94 @@
                     <p class="movie-genre">${movie.genre}</p>
                     <p class="movie-rating">${movie.rating}/10</p>
                 </div>
-                <button class="quick-add-btn" data-movie="${movie.title}" onclick="event.stopPropagation(); toggleWatchlist(event, '${movie.title}')">
+                <button class="quick-add-btn ${inWatchlist ? 'in-watchlist' : ''}" data-movie="${movie.title}" title="${inWatchlist ? 'Remove from watchlist' : 'Add to watchlist'}">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"></path>
-                        <polyline points="17 21 17 13 7 13 7 21"></polyline>
-                        <polyline points="7 3 7 8 15 8"></polyline>
+                        ${inWatchlist ? 
+                            '<path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"></path>' : 
+                            '<path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline>'}
                     </svg>
                 </button>
             `;
             
+            // Add click event listener to the card
+            card.addEventListener('click', (e) => {
+                // Only navigate if the click is not on the quick-add button
+                if (!e.target.closest('.quick-add-btn')) {
+                    window.location.href = `/movie/${encodeURIComponent(movie.title)}`;
+                }
+            });
+            
             return card;
+        }
+        
+        // Setup quick add buttons
+        function setupQuickAddButtons() {
+            document.querySelectorAll('.quick-add-btn').forEach(button => {
+                // Remove existing click listeners
+                button.replaceWith(button.cloneNode(true));
+                
+                // Get the fresh button reference after cloning
+                const newButton = document.querySelector(`[data-movie="${button.dataset.movie}"]`);
+                
+                // Add new click listener
+                newButton.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const movieTitle = this.dataset.movie;
+                    
+                    // Check if user is logged in
+                    if (!isLoggedIn) {
+                        showToast('Please sign in to add movies to your watchlist', 'error');
+                        return;
+                    }
+                    
+                    const isInWatchlist = this.classList.contains('in-watchlist');
+                    const action = isInWatchlist ? 'remove' : 'add';
+                    
+                    fetch(`/api/watchlist/${action}`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ movie_title: movieTitle })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            if (action === 'add') {
+                                userWatchlist.add(movieTitle);
+                                this.classList.add('in-watchlist');
+                                this.title = 'Remove from watchlist';
+                                this.innerHTML = `
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M9 11l3 3L22 4"></path>
+                                        <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"></path>
+                                    </svg>
+                                `;
+                                showToast(`"${movieTitle}" added to your watchlist`);
+                            } else {
+                                userWatchlist.delete(movieTitle);
+                                this.classList.remove('in-watchlist');
+                                this.title = 'Add to watchlist';
+                                this.innerHTML = `
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"></path>
+                                        <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                                        <polyline points="7 3 7 8 15 8"></polyline>
+                                    </svg>
+                                `;
+                                showToast(`"${movieTitle}" removed from your watchlist`);
+                            }
+                        } else {
+                            showToast(data.message || 'Failed to update watchlist', 'error');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        showToast('Failed to update watchlist', 'error');
+                    });
+                });
+            });
         }
         
         // Infinite scroll handler
@@ -1040,7 +1322,7 @@
             const menu = document.getElementById('userDropdown');
             menu.style.display = (menu.style.display === 'block') ? 'none' : 'block';
         }
-        
+
         window.addEventListener('click', function(e) {
             const dropdown = document.getElementById('userDropdown');
             if (dropdown && !e.target.closest('.user-dropdown')) {
@@ -1104,85 +1386,7 @@
 
             return result.concat(left.slice(leftIndex)).concat(right.slice(rightIndex));
         }
-
-        // Function to sort movies using merge sort
-        function sortMovies() {
-            const sortBy = document.getElementById("sort-options").value;
-            const movieGrid = document.getElementById("movie-grid");
-            const movies = Array.from(movieGrid.children);
-            
-            // Extract movie data from the DOM
-            const movieData = movies.map(movieCard => {
-                const titleElement = movieCard.querySelector('.movie-title');
-                const ratingElement = movieCard.querySelector('.movie-rating');
-                const releaseDateElement = movieCard.querySelector('[data-release-date]');
-                
-                return {
-                    element: movieCard,
-                    title: titleElement ? titleElement.textContent : '',
-                    rating: ratingElement ? parseFloat(ratingElement.textContent) : 0,
-                    release_date: releaseDateElement ? releaseDateElement.getAttribute('data-release-date') : ''
-                };
-            });
-
-            // Perform merge sort
-            const sortedMovies = mergeSort(movieData, sortBy, 'desc');
-
-            // Clear the movie grid
-            movieGrid.innerHTML = '';
-
-            // Append sorted movies back to the grid
-            sortedMovies.forEach(movie => {
-                movieGrid.appendChild(movie.element);
-            });
-        }
-
-        // Update the sort option click handler
-        sortOptions.forEach(option => {
-            option.addEventListener('click', function() {
-                // Update active state
-                sortOptions.forEach(opt => opt.classList.remove('active'));
-                this.classList.add('active');
-                
-                // Get sort parameters
-                const sortBy = this.getAttribute('data-sort');
-                const sortOrder = this.getAttribute('data-order');
-                
-                // Update current sort text
-                let sortText = this.textContent;
-                currentSortText.textContent = sortText;
-                
-                // Get current movies and sort them
-                const movieGrid = document.getElementById('movie-grid');
-                const movies = Array.from(movieGrid.children);
-                
-                // Extract movie data
-                const movieData = movies.map(movieCard => {
-                    const titleElement = movieCard.querySelector('.movie-title');
-                    const ratingElement = movieCard.querySelector('.movie-rating');
-                    const releaseDateElement = movieCard.querySelector('[data-release-date]');
-                    
-                    return {
-                        element: movieCard,
-                        title: titleElement ? titleElement.textContent : '',
-                        rating: ratingElement ? parseFloat(ratingElement.textContent) : 0,
-                        release_date: releaseDateElement ? releaseDateElement.getAttribute('data-release-date') : ''
-                    };
-                });
-                
-                // Perform merge sort
-                const sortedMovies = mergeSort(movieData, sortBy, sortOrder);
-                
-                // Clear and repopulate the movie grid
-                movieGrid.innerHTML = '';
-                sortedMovies.forEach(movie => {
-                    movieGrid.appendChild(movie.element);
-                });
-                
-                // Close dropdown
-                sortDropdownContent.classList.remove('show');
-            });
-        });
     </script>
 </body>
 </html>
+
