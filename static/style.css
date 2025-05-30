@@ -1196,3 +1196,54 @@ main {
   height: 24px;
   fill: white;
 }
+
+.refresh-btn {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    font-weight: 500;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all var(--transition-fast);
+    background: rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 20px;
+    cursor: pointer;
+    padding: 8px 16px;
+}
+
+.refresh-btn:hover {
+    color: var(--primary);
+    background: rgba(0, 0, 0, 0.7);
+    border-color: var(--primary);
+    transform: scale(1.05);
+}
+
+.refresh-btn::after {
+    content: "↻";
+    font-size: 1.2rem;
+    margin-left: 0.5rem;
+    transition: transform var(--transition-fast);
+}
+
+.refresh-btn:hover::after {
+    transform: rotate(180deg);
+}
+
+.similar-movies-title {
+    display: flex;
+    align-items: center;
+}
+
+/* Remove the AI label styling */
+/* .similar-movies-title::before {
+    content: "AI";
+    font-size: 0.7rem;
+    background-color: var(--primary);
+    color: white;
+    padding: 0.2rem 0.4rem;
+    border-radius: 4px;
+    margin-right: 0.5rem;
+    font-weight: 700;
+} */

@@ -1120,53 +1120,46 @@ def get_user_recommendations(username, limit=5):
                 weight = 1 + (user_rating / 10) if user_rating > 0 else 1
                 genre_weights[genre] = genre_weights.get(genre, 0) + weight
     
-    # If user has no preferences yet, return highly-rated movies from popular genres
+    # If user has no preferences yet, return empty list instead of default recommendations
     if not user_genres:
-        c.execute("""
-            SELECT DISTINCT m.title, m.genre, m.description, m.rating, 
-                   m.release_date, m."cast", m.runtime, m.poster_url, m.trailer_url
-            FROM movies m
-            WHERE m.rating >= 7.5
-            AND m.genre LIKE '%Action%' OR m.genre LIKE '%Drama%' OR m.genre LIKE '%Comedy%'
-            ORDER BY m.rating DESC
-            LIMIT ?
-        """, (limit,))
-    else:
-        # Get most frequent genres weighted by user ratings
-        top_genres = sorted(genre_weights.items(), key=lambda x: x[1], reverse=True)[:3]
-        top_genres = [genre for genre, _ in top_genres]
-        
-        # Create weighted conditions for each genre
-        genre_conditions = []
-        genre_params = []
-        for i, genre in enumerate(top_genres):
-            # Give higher weight to primary genres
-            weight = 3 - i  # 3 for first genre, 2 for second, 1 for third
-            genre_conditions.append(f"(CASE WHEN m.genre LIKE ? THEN {weight} ELSE 0 END)")
-            genre_params.append(f"%{genre}%")
-        
-        # Combine conditions into a relevance score
-        relevance_score = " + ".join(genre_conditions)
-        
-        query = f"""
-            SELECT DISTINCT m.title, m.genre, m.description, m.rating, 
-                   m.release_date, m."cast", m.runtime, m.poster_url, m.trailer_url,
-                   ({relevance_score}) as relevance
-            FROM movies m
-            WHERE m.rating >= 7.0
-            AND m.id NOT IN (
-                SELECT movie_id FROM watchlist WHERE user_id = ?
-                UNION
-                SELECT movie_id FROM watched WHERE user_id = ?
-            )
-            AND (
-                {' OR '.join(['m.genre LIKE ?' for _ in top_genres])}
-            )
-            ORDER BY relevance DESC, m.rating DESC
-            LIMIT ?
-        """
-        
-        c.execute(query, genre_params + genre_params + [user_id, user_id, limit])
+        conn.close()
+        return []
+    
+    # Get most frequent genres weighted by user ratings
+    top_genres = sorted(genre_weights.items(), key=lambda x: x[1], reverse=True)[:3]
+    top_genres = [genre for genre, _ in top_genres]
+    
+    # Create weighted conditions for each genre
+    genre_conditions = []
+    genre_params = []
+    for i, genre in enumerate(top_genres):
+        # Give higher weight to primary genres
+        weight = 3 - i  # 3 for first genre, 2 for second, 1 for third
+        genre_conditions.append(f"(CASE WHEN m.genre LIKE ? THEN {weight} ELSE 0 END)")
+        genre_params.append(f"%{genre}%")
+    
+    # Combine conditions into a relevance score
+    relevance_score = " + ".join(genre_conditions)
+    
+    query = f"""
+        SELECT DISTINCT m.title, m.genre, m.description, m.rating, 
+               m.release_date, m."cast", m.runtime, m.poster_url, m.trailer_url,
+               ({relevance_score}) as relevance
+        FROM movies m
+        WHERE m.rating >= 7.0
+        AND m.id NOT IN (
+            SELECT movie_id FROM watchlist WHERE user_id = ?
+            UNION
+            SELECT movie_id FROM watched WHERE user_id = ?
+        )
+        AND (
+            {' OR '.join(['m.genre LIKE ?' for _ in top_genres])}
+        )
+        ORDER BY relevance DESC, m.rating DESC
+        LIMIT ?
+    """
+    
+    c.execute(query, genre_params + genre_params + [user_id, user_id, limit])
     
     recommendations = []
     for row in c.fetchall():
@@ -1230,53 +1223,46 @@ def api_user_recommendations():
                 weight = 1 + (user_rating / 10) if user_rating > 0 else 1
                 genre_weights[genre] = genre_weights.get(genre, 0) + weight
     
-    # If user has no preferences yet, return highly-rated movies from popular genres
+    # If user has no preferences yet, return empty list instead of default recommendations
     if not user_genres:
-        c.execute("""
-            SELECT DISTINCT m.title, m.genre, m.description, m.rating, 
-                   m.release_date, m."cast", m.runtime, m.poster_url, m.trailer_url
-            FROM movies m
-            WHERE m.rating >= 7.5
-            AND (m.genre LIKE '%Action%' OR m.genre LIKE '%Drama%' OR m.genre LIKE '%Comedy%')
-            ORDER BY m.rating DESC
-            LIMIT ? OFFSET ?
-        """, (limit, offset))
-    else:
-        # Get most frequent genres weighted by user ratings
-        top_genres = sorted(genre_weights.items(), key=lambda x: x[1], reverse=True)[:3]
-        top_genres = [genre for genre, _ in top_genres]
-        
-        # Create weighted conditions for each genre
-        genre_conditions = []
-        genre_params = []
-        for i, genre in enumerate(top_genres):
-            # Give higher weight to primary genres
-            weight = 3 - i  # 3 for first genre, 2 for second, 1 for third
-            genre_conditions.append(f"(CASE WHEN m.genre LIKE ? THEN {weight} ELSE 0 END)")
-            genre_params.append(f"%{genre}%")
-        
-        # Combine conditions into a relevance score
-        relevance_score = " + ".join(genre_conditions)
-        
-        query = f"""
-            SELECT DISTINCT m.title, m.genre, m.description, m.rating, 
-                   m.release_date, m."cast", m.runtime, m.poster_url, m.trailer_url,
-                   ({relevance_score}) as relevance
-            FROM movies m
-            WHERE m.rating >= 7.0
-            AND m.id NOT IN (
-                SELECT movie_id FROM watchlist WHERE user_id = ?
-                UNION
-                SELECT movie_id FROM watched WHERE user_id = ?
-            )
-            AND (
-                {' OR '.join(['m.genre LIKE ?' for _ in top_genres])}
-            )
-            ORDER BY relevance DESC, m.rating DESC
-            LIMIT ? OFFSET ?
-        """
-        
-        c.execute(query, genre_params + genre_params + [user_id, user_id, limit, offset])
+        conn.close()
+        return jsonify([])
+    
+    # Get most frequent genres weighted by user ratings
+    top_genres = sorted(genre_weights.items(), key=lambda x: x[1], reverse=True)[:3]
+    top_genres = [genre for genre, _ in top_genres]
+    
+    # Create weighted conditions for each genre
+    genre_conditions = []
+    genre_params = []
+    for i, genre in enumerate(top_genres):
+        # Give higher weight to primary genres
+        weight = 3 - i  # 3 for first genre, 2 for second, 1 for third
+        genre_conditions.append(f"(CASE WHEN m.genre LIKE ? THEN {weight} ELSE 0 END)")
+        genre_params.append(f"%{genre}%")
+    
+    # Combine conditions into a relevance score
+    relevance_score = " + ".join(genre_conditions)
+    
+    query = f"""
+        SELECT DISTINCT m.title, m.genre, m.description, m.rating, 
+               m.release_date, m."cast", m.runtime, m.poster_url, m.trailer_url,
+               ({relevance_score}) as relevance
+        FROM movies m
+        WHERE m.rating >= 7.0
+        AND m.id NOT IN (
+            SELECT movie_id FROM watchlist WHERE user_id = ?
+            UNION
+            SELECT movie_id FROM watched WHERE user_id = ?
+        )
+        AND (
+            {' OR '.join(['m.genre LIKE ?' for _ in top_genres])}
+        )
+        ORDER BY relevance DESC, m.rating DESC
+        LIMIT ? OFFSET ?
+    """
+    
+    c.execute(query, genre_params + genre_params + [user_id, user_id, limit, offset])
     
     recommendations = []
     for row in c.fetchall():
