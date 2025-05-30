@@ -279,16 +279,35 @@ def get_random_movies_by_genre(genre, limit=5):
         for row in selected
     ]
 
-def get_movies_by_genre_paginated(genre, page=0, limit=5):
+def get_movies_by_genre_paginated(genre, page=0, limit=5, exclude_movies=None):
     offset = page * limit
     conn = sqlite3.connect(DB_FILE)
     c = conn.cursor()
-    c.execute('''
-        SELECT title, genre, description, rating, release_date, "cast", runtime, poster_url, trailer_url
-        FROM movies
-        WHERE genre LIKE ?
-        LIMIT ? OFFSET ?
-    ''', (f'%{genre}%', limit, offset))
+    
+    if exclude_movies and len(exclude_movies) > 0:
+        # Create placeholders for the IN clause
+        placeholders = ','.join(['?' for _ in exclude_movies])
+        query = '''
+            SELECT title, genre, description, rating, release_date, "cast", runtime, poster_url, trailer_url
+            FROM movies
+            WHERE genre LIKE ?
+            AND title NOT IN ({})
+            ORDER BY rating DESC
+            LIMIT ? OFFSET ?
+        '''.format(placeholders)
+        
+        # Parameters: genre pattern + excluded titles + limit + offset
+        params = [f'%{genre}%'] + list(exclude_movies) + [limit, offset]
+        c.execute(query, params)
+    else:
+        c.execute('''
+            SELECT title, genre, description, rating, release_date, "cast", runtime, poster_url, trailer_url
+            FROM movies
+            WHERE genre LIKE ?
+            ORDER BY rating DESC
+            LIMIT ? OFFSET ?
+        ''', (f'%{genre}%', limit, offset))
+    
     rows = c.fetchall()
     conn.close()
     return [
