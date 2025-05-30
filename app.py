@@ -28,17 +28,13 @@ for initial data seeding.
 from flask import Flask, render_template, request, redirect, session, url_for, jsonify
 import sqlite3
 from db import init_db, get_movies_by_genre_paginated, get_user_watchlist, add_to_watchlist, remove_from_watchlist, mark_as_watched, unmark_as_watched, get_or_create_folder, rename_folder, delete_folder, move_to_folder, get_user_id_by_username, check_csv_changes
-import random
 
-# Add these imports for the content-based filtering
+# for content-based filtering
 import numpy as np
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 import re
-
-# Add these imports at the top of the file, after the existing imports
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.model_selection import train_test_split
 import numpy as np
 import pickle
@@ -284,11 +280,6 @@ def profile():
 
 # Function to get similar movies based on content-based filtering
 def get_similar_movies(movie_title, limit=5):
-    import numpy as np
-    from sklearn.feature_extraction.text import TfidfVectorizer
-    from sklearn.metrics.pairwise import cosine_similarity
-    import re
-    
     conn = sqlite3.connect("moodflix.db")
     c = conn.cursor()
     
