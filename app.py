@@ -24,11 +24,16 @@ app.secret_key = "supersecret"  # Change this in production
 def check_csv_update():
     """Check if CSV has been updated before each request"""
     if request.endpoint != 'static':  # Skip for static files
-        with sqlite3.connect("moodflix.db") as conn:
-            if check_csv_changes(conn):
-                init_db(force_reseed=True)
-                # Clear any existing sessions to force re-login after reseed
-                session.clear()
+        try:
+            with sqlite3.connect("moodflix.db", timeout=20) as conn:
+                conn.execute("PRAGMA busy_timeout = 30000")  # Wait up to 30 seconds for locks
+                if check_csv_changes(conn):
+                    init_db(force_reseed=True)
+                    # Clear any existing sessions to force re-login after reseed
+                    session.clear()
+        except sqlite3.Error as e:
+            print(f"[APP] Database error during CSV check: {e}")
+            # Don't raise the error to allow the request to continue
 
 @app.route("/")
 def home():
@@ -173,15 +178,19 @@ def signin():
 
         conn = sqlite3.connect("moodflix.db")
         c = conn.cursor()
-        c.execute("SELECT * FROM users WHERE username=? AND password=?", (username, password))
+        
+        # First check if username exists
+        c.execute("SELECT password FROM users WHERE username=?", (username,))
         user = c.fetchone()
         conn.close()
 
-        if user:
-            session["username"] = username
-            return redirect(url_for("home"))
-        else:
-            return "Invalid credentials", 401
+        if not user:
+            return "Invalid username", 401
+        elif user[0] != password:
+            return "Invalid password", 401
+        
+        session["username"] = username
+        return redirect(url_for("home"))
 
     return render_template("signin.html")
 

@@ -47,7 +47,10 @@ def check_csv_changes(conn):
     return False
 
 def init_db(force_reseed=False):
-    with sqlite3.connect(DB_FILE) as conn:
+    conn = None
+    try:
+        conn = sqlite3.connect(DB_FILE, timeout=20)  # Add timeout for lock waiting
+        conn.execute("PRAGMA busy_timeout = 30000")  # Wait up to 30 seconds for locks
         c = conn.cursor()
 
         # --- Create tables ---
@@ -128,87 +131,100 @@ def init_db(force_reseed=False):
                 need_reseed = True
         
         if need_reseed:
-            # Clear existing movies and their related data
-            print("[DB] Clearing existing movies and related data...")
-            c.execute("DELETE FROM watchlist")  # Clear watchlist first due to foreign key
-            c.execute("DELETE FROM watched")    # Clear watched data
-            c.execute("DELETE FROM movies")     # Then clear movies
-            
-            # Delete the mood classifier model to force retraining
-            if os.path.exists('mood_classifier.pkl'):
-                os.remove('mood_classifier.pkl')
-                print("[DB] Removed old mood classifier model for retraining...")
-            
-            # Reseed from CSV
-            if os.path.exists(CSV_FILE):
-                print("[DB] Seeding movies from CSV...")
-                with open(CSV_FILE, newline='', encoding='utf-8') as csvfile:
-                    reader = csv.DictReader(csvfile)
-                    
-                    # Map CSV columns to database columns
-                    column_mapping = {
-                        'title': 'title',
-                        'genres': 'genre',  # Note the difference
-                        'overview': 'description',  # Note the difference
-                        'rating': 'rating',
-                        'release_date': 'release_date',
-                        'cast': 'cast',
-                        'runtime': 'runtime',
-                        'poster_url': 'poster_url',
-                        'trailer_url': 'trailer_url'
-                    }
-                    
-                    for row in reader:
-                        # Extract and clean data using the mapping
-                        data = {}
-                        for csv_col, db_col in column_mapping.items():
-                            value = row.get(csv_col, '').strip()
-                            
-                            # Special handling for different column types
-                            if db_col == 'rating':
-                                try:
-                                    value = round(float(value or 0), 1)
-                                except:
-                                    value = 0
-                            elif db_col == 'runtime':
-                                try:
-                                    value = int(float(value or 0))
-                                except:
-                                    value = 0
-                            elif db_col == 'poster_url':
-                                value = value or '/static/posters/placeholder.jpg'
-                                # Ensure poster URL starts with /static/posters/
-                                if not value.startswith('/static/posters/'):
-                                    # Check if the file exists in the posters directory
-                                    poster_path = os.path.join('static/posters', os.path.basename(value))
-                                    if os.path.exists(poster_path):
-                                        value = f'/static/posters/{os.path.basename(value)}'
-                                    else:
-                                        value = '/static/posters/placeholder.jpg'
-                            
-                            data[db_col] = value
+            try:
+                # Clear existing movies and their related data
+                print("[DB] Clearing existing movies and related data...")
+                c.execute("DELETE FROM watchlist")  # Clear watchlist first due to foreign key
+                c.execute("DELETE FROM watched")    # Clear watched data
+                c.execute("DELETE FROM movies")     # Then clear movies
+                conn.commit()  # Commit the deletions
+                
+                # Delete the mood classifier model to force retraining
+                if os.path.exists('mood_classifier.pkl'):
+                    os.remove('mood_classifier.pkl')
+                    print("[DB] Removed old mood classifier model for retraining...")
+                
+                # Reseed from CSV
+                if os.path.exists(CSV_FILE):
+                    print("[DB] Seeding movies from CSV...")
+                    with open(CSV_FILE, newline='', encoding='utf-8') as csvfile:
+                        reader = csv.DictReader(csvfile)
                         
-                        # Insert into database
-                        c.execute('''
-                            INSERT INTO movies (
-                                title, genre, description, rating, 
-                                release_date, cast, runtime, 
-                                poster_url, trailer_url
-                            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                        ''', (
-                            data['title'], data['genre'], data['description'],
-                            data['rating'], data['release_date'], data['cast'],
-                            data['runtime'], data['poster_url'], data['trailer_url']
-                        ))
-                
-                print("[DB] Seeding complete.")
-                
-                # Initialize mood predictions for the new data
-                initialize_mood_predictions()
-            else:
-                print("[DB] Warning: movies.csv not found!")
-
-        conn.commit()
+                        # Map CSV columns to database columns
+                        column_mapping = {
+                            'title': 'title',
+                            'genres': 'genre',  # Note the difference
+                            'overview': 'description',  # Note the difference
+                            'rating': 'rating',
+                            'release_date': 'release_date',
+                            'cast': 'cast',
+                            'runtime': 'runtime',
+                            'poster_url': 'poster_url',
+                            'trailer_url': 'trailer_url'
+                        }
+                        
+                        for row in reader:
+                            # Extract and clean data using the mapping
+                            data = {}
+                            for csv_col, db_col in column_mapping.items():
+                                value = row.get(csv_col, '').strip()
+                                
+                                # Special handling for different column types
+                                if db_col == 'rating':
+                                    try:
+                                        value = round(float(value or 0), 1)
+                                    except:
+                                        value = 0
+                                elif db_col == 'runtime':
+                                    try:
+                                        value = int(float(value or 0))
+                                    except:
+                                        value = 0
+                                elif db_col == 'poster_url':
+                                    value = value or '/static/posters/placeholder.jpg'
+                                    # Ensure poster URL starts with /static/posters/
+                                    if not value.startswith('/static/posters/'):
+                                        # Check if the file exists in the posters directory
+                                        poster_path = os.path.join('static/posters', os.path.basename(value))
+                                        if os.path.exists(poster_path):
+                                            value = f'/static/posters/{os.path.basename(value)}'
+                                        else:
+                                            value = '/static/posters/placeholder.jpg'
+                                
+                                data[db_col] = value
+                            
+                            # Insert into database
+                            c.execute('''
+                                INSERT INTO movies (
+                                    title, genre, description, rating, 
+                                    release_date, cast, runtime, 
+                                    poster_url, trailer_url
+                                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                            ''', (
+                                data['title'], data['genre'], data['description'],
+                                data['rating'], data['release_date'], data['cast'],
+                                data['runtime'], data['poster_url'], data['trailer_url']
+                            ))
+                            
+                            # Commit every 100 rows to avoid large transactions
+                            if reader.line_num % 100 == 0:
+                                conn.commit()
+                                
+                    # Final commit for any remaining rows
+                    conn.commit()
+                    print("[DB] Database seeding complete.")
+            except sqlite3.Error as e:
+                print(f"[DB] Error during reseeding: {e}")
+                conn.rollback()
+                raise
+    except sqlite3.Error as e:
+        print(f"[DB] Database error: {e}")
+        if conn:
+            conn.rollback()
+        raise
+    finally:
+        if conn:
+            conn.close()
 
 def get_movies_by_genre(genre, limit=5):
     conn = sqlite3.connect(DB_FILE)
@@ -561,7 +577,10 @@ def move_to_folder(username, movie_title, folder_name):
 
 def initialize_mood_predictions():
     """Initialize the predicted_mood column in the movies table"""
-    with sqlite3.connect(DB_FILE) as conn:
+    conn = None
+    try:
+        conn = sqlite3.connect(DB_FILE, timeout=20)  # Add timeout for lock waiting
+        conn.execute("PRAGMA busy_timeout = 30000")  # Wait up to 30 seconds for locks
         c = conn.cursor()
         
         # Check if predicted_mood column exists
@@ -588,51 +607,74 @@ def initialize_mood_predictions():
                     c.execute("SELECT id, description FROM movies WHERE description IS NOT NULL AND description != ''")
                     movies = c.fetchall()
                     
-                    # Predict moods and update database
-                    for movie_id, description in movies:
-                        if description:
-                            # Predict mood
-                            X = vectorizer.transform([description])
-                            predicted_mood = clf.predict(X)[0]
-                            
-                            # Update database
-                            c.execute("UPDATE movies SET predicted_mood = ? WHERE id = ?", (predicted_mood, movie_id))
+                    # Process movies in batches to avoid long transactions
+                    batch_size = 100
+                    for i in range(0, len(movies), batch_size):
+                        batch = movies[i:i + batch_size]
+                        for movie_id, description in batch:
+                            if description:
+                                # Predict mood
+                                X = vectorizer.transform([description])
+                                predicted_mood = clf.predict(X)[0]
+                                
+                                # Update database
+                                c.execute("UPDATE movies SET predicted_mood = ? WHERE id = ?", (predicted_mood, movie_id))
+                        
+                        # Commit each batch
+                        conn.commit()
                     
-                    conn.commit()
                     print("[DB] Mood predictions complete.")
                 else:
                     print("[DB] No mood classifier model found. Run /train_mood_classifier to create one.")
+                    
+                    # Use genre-based mood mapping as fallback
+                    print("[DB] Using genre-based mood mapping as fallback...")
+                    
+                    # Simple genre to mood mapping
+                    mood_mapping = {
+                        "Comedy": "happy",
+                        "Animation": "happy",
+                        "Family": "happy",
+                        "Drama": "sad",
+                        "Romance": "romantic",
+                        "Thriller": "tense",
+                        "Horror": "tense",
+                        "Mystery": "tense",
+                        "Action": "excited",
+                        "Adventure": "excited",
+                        "Sci-Fi": "excited"
+                    }
+                    
+                    c.execute("SELECT id, genre FROM movies")
+                    movies = c.fetchall()
+                    
+                    # Process movies in batches
+                    batch_size = 100
+                    for i in range(0, len(movies), batch_size):
+                        batch = movies[i:i + batch_size]
+                        for movie_id, genre_list in batch:
+                            if genre_list:
+                                primary_genre = genre_list.split('|')[0].strip()
+                                mood = mood_mapping.get(primary_genre, "relaxed")  # Default to relaxed
+                                c.execute("UPDATE movies SET predicted_mood = ? WHERE id = ?", (mood, movie_id))
+                        
+                        # Commit each batch
+                        conn.commit()
+                    
+                    print("[DB] Fallback mood mapping complete.")
             except Exception as e:
                 print(f"[DB] Error initializing mood predictions: {e}")
-                # If prediction fails, use genre-based mood mapping as fallback
-                print("[DB] Using genre-based mood mapping as fallback...")
-                
-                # Simple genre to mood mapping
-                mood_mapping = {
-                    "Comedy": "happy",
-                    "Animation": "happy",
-                    "Family": "happy",
-                    "Drama": "sad",
-                    "Romance": "romantic",
-                    "Thriller": "tense",
-                    "Horror": "tense",
-                    "Mystery": "tense",
-                    "Action": "excited",
-                    "Adventure": "excited",
-                    "Sci-Fi": "excited"
-                }
-                
-                c.execute("SELECT id, genre FROM movies")
-                movies = c.fetchall()
-                
-                for movie_id, genre_list in movies:
-                    if genre_list:
-                        primary_genre = genre_list.split('|')[0].strip()
-                        mood = mood_mapping.get(primary_genre, "relaxed")  # Default to relaxed
-                        c.execute("UPDATE movies SET predicted_mood = ? WHERE id = ?", (mood, movie_id))
-                
-                conn.commit()
-                print("[DB] Fallback mood mapping complete.")
+                conn.rollback()
+                raise
+    except sqlite3.Error as e:
+        print(f"[DB] Database error: {e}")
+        if conn:
+            conn.rollback()
+        raise
+    finally:
+        if conn:
+            conn.close()
+
 # Add these functions to your db.py file
 
 def quick_sort_movies(movies, sort_by="title", order="desc"):

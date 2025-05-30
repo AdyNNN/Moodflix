@@ -3,11 +3,36 @@
 <head>
     <title>Sign In - MoodFlix</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        /* Toast notification styles */
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 1rem 1.5rem;
+            border-radius: 4px;
+            color: white;
+            font-weight: 500;
+            opacity: 0;
+            transform: translateY(-20px);
+            transition: all 0.3s ease;
+            z-index: 1000;
+        }
+
+        .toast.error {
+            background-color: #dc3545;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    </style>
 </head>
 <body class="auth-page">
     <div class="auth-container">
         <h1>Sign In</h1>
-        <form method="POST">
+        <form id="signin-form">
             <div class="form-group">
                 <input type="text" name="username" placeholder="Username" required />
             </div>
@@ -19,5 +44,58 @@
         <p>Don't have an account? <a href="{{ url_for('register') }}">Sign Up</a></p>
         <p><a href="{{ url_for('home') }}">Home</a></p>
     </div>
+
+    <script>
+        // Function to show toast notification
+        function showToast(message, type = 'error') {
+            // Remove any existing toast
+            const existingToast = document.querySelector('.toast');
+            if (existingToast) {
+                existingToast.remove();
+            }
+
+            // Create new toast
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.textContent = message;
+            document.body.appendChild(toast);
+
+            // Show toast
+            setTimeout(() => toast.classList.add('show'), 10);
+
+            // Hide and remove toast after 3 seconds
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        // Handle form submission
+        document.getElementById('signin-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+
+            try {
+                const response = await fetch('{{ url_for("signin") }}', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (response.ok) {
+                    // Redirect to home page on success
+                    window.location.href = '{{ url_for("home") }}';
+                } else {
+                    const text = await response.text();
+                    if (text.includes('username')) {
+                        showToast('No user found with this username');
+                    } else {
+                        showToast('Invalid password');
+                    }
+                }
+            } catch (error) {
+                showToast('An error occurred. Please try again.');
+            }
+        });
+    </script>
 </body>
 </html>
