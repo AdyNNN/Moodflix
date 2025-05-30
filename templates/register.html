@@ -1,130 +1,24 @@
-<!--
-  Registration Page (register.html)
-  
-  New user account creation page with:
-  - Registration form
-  - Username/password creation
-  - Email verification
-  - Terms of service acceptance
-  - Password requirements
-  - Form validation
-  - Error handling
-  - Sign in link for existing users
--->
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <!-- Meta tags and title -->
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <meta charset="UTF-8">
     <title>Register - MoodFlix</title>
-    
-    <!-- External stylesheets -->
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    
-    <style>
-        /*
-         * Page-specific styles
-         * 
-         * 1. Form Layout:
-         * - Centered design
-         * - Card container
-         * - Responsive sizing
-         * 
-         * 2. Input Fields:
-         * - Text styling
-         * - Focus states
-         * - Error states
-         * 
-         * 3. Password Requirements:
-         * - Requirement list
-         * - Validation indicators
-         * - Dynamic updates
-         * 
-         * 4. Error Messages:
-         * - Alert design
-         * - Color coding
-         * - Animation
-         */
-         
-        // ... existing code ...
-    </style>
 </head>
-<body>
-    <!-- 
-      Navigation Header
-      - Site logo
-      - Minimal navigation
-    -->
-    <header>
-        // ... existing code ...
-    </header>
-
-    <main>
-        <!-- 
-          Registration Form
-          - Username input
-          - Email input
-          - Password input
-          - Confirm password
-          - Terms acceptance
-        -->
-        <div class="auth-container">
-            <h1>Sign Up</h1>
-            <form method="POST">
-                <div class="form-group">
-                    <input type="text" name="username" placeholder="Username" required />
-                </div>
-                <div class="form-group">
-                    <input type="password" name="password" placeholder="Password" required />
-                </div>
-                <button type="submit">Register</button>
-            </form>
-            <p>Already have an account? <a href="{{ url_for('signin') }}">Sign In</a></p>
-            <p><a href="{{ url_for('home') }}">Home</a></p>
-        </div>
-        
-        <!-- 
-          Additional Links
-          - Sign in for existing users
-          - Help center
-          - Terms of service
-        -->
-        <div class="auth-links">
-            // ... existing code ...
-        </div>
-    </main>
-
-    <!-- Toast notification container -->
-    <div id="toast" class="toast"></div>
-
-    <script>
-        /*
-         * JavaScript Functionality
-         * 
-         * 1. Form Validation:
-         * - Input validation
-         * - Password strength
-         * - Matching passwords
-         * 
-         * 2. User Interactions:
-         * - Show/hide password
-         * - Terms acceptance
-         * - Form submission
-         * 
-         * 3. Error Handling:
-         * - Display error messages
-         * - Clear form errors
-         * - Server response
-         * 
-         * 4. UI Components:
-         * - Password requirements
-         * - Toast notifications
-         * - Loading states
-         */
-         
-        // ... existing code ...
-    </script>
+<body class="auth-page">
+    <div class="auth-container">
+        <h1>Sign Up</h1>
+        <form method="POST">
+            <div class="form-group">
+                <input type="text" name="username" placeholder="Username" required />
+            </div>
+            <div class="form-group">
+                <input type="password" name="password" placeholder="Password" required />
+            </div>
+            <button type="submit">Register</button>
+        </form>
+        <p>Already have an account? <a href="{{ url_for('signin') }}">Sign In</a></p>
+        <p><a href="{{ url_for('home') }}">Home</a></p>
+    </div>
 </body>
 </html>
