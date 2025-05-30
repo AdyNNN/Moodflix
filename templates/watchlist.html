@@ -244,6 +244,7 @@
             display: flex;
             gap: 0.5rem;
             padding-top: 0.5rem;
+            flex-wrap: wrap;
         }
         
         .card-btn {
@@ -255,8 +256,10 @@
             font-size: 0.8rem;
             cursor: pointer;
             flex: 1;
+            min-width: calc(50% - 0.25rem);
             transition: all var(--transition-fast);
             text-align: center;
+            white-space: nowrap;
         }
         
         .card-btn:hover {
@@ -531,6 +534,11 @@
             font-weight: 600;
         }
 
+        .rating-value.unwatched {
+            color: var(--text-secondary);
+            font-style: italic;
+        }
+
         .rating-stars {
             display: flex;
             flex-wrap: wrap;
@@ -778,10 +786,18 @@
                                         </div>
                                         {% endif %}
                                     </div>
+                                    {% else %}
+                                    <div class="rating-container">
+                                        <div class="rating-label">
+                                            <span class="rating-label-text">My Rating:</span>
+                                            <span class="rating-value unwatched">Unwatched</span>
+                                        </div>
+                                    </div>
                                     {% endif %}
                                     
                                     <div class="card-actions">
                                         <button class="card-btn" onclick="openMoveToFolderModal('{{ movie.title }}'); event.stopPropagation();">Move</button>
+                                        <button class="card-btn" onclick="removeFromWatchlist('{{ movie.title }}'); event.stopPropagation();">Remove</button>
                                         
                                         {% if not movie.is_watched %}
                                         <button class="card-btn primary" onclick="markAsWatched('{{ movie.title }}'); event.stopPropagation();">✓ Watched</button>
@@ -1274,6 +1290,31 @@
         function toggleDropdown() {
             const menu = document.getElementById('userDropdown');
             menu.style.display = (menu.style.display === 'block') ? 'none' : 'block';
+        }
+        
+        function removeFromWatchlist(movieTitle) {
+            fetch('/api/watchlist/remove', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    movie_title: movieTitle
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showToast('Movie removed from watchlist');
+                    window.location.reload();
+                } else {
+                    showToast(data.message, 'error');
+                }
+            })
+            .catch(error => {
+                showToast('An error occurred', 'error');
+                console.error('Error:', error);
+            });
         }
         
         window.addEventListener('click', function(e) {
