@@ -1,3 +1,30 @@
+"""
+MoodFlix Application Server (app.py)
+
+This is the main Flask application server for MoodFlix, a movie recommendation platform.
+The application provides personalized movie recommendations based on user moods,
+preferences, and viewing history.
+
+Key Features:
+- User authentication and session management
+- Movie recommendations based on mood and genre
+- Personalized watchlist management
+- Content-based movie similarity
+- Machine learning-based mood classification
+- Advanced search functionality
+- RESTful API endpoints
+
+Dependencies:
+- Flask: Web framework
+- SQLite3: Database management
+- scikit-learn: Machine learning for recommendations
+- NumPy: Numerical computations
+- Pickle: Model serialization
+
+The application uses a SQLite database (moodflix.db) and requires a movies.csv file
+for initial data seeding.
+"""
+
 from flask import Flask, render_template, request, redirect, session, url_for, jsonify
 import sqlite3
 from db import init_db, get_movies_by_genre_paginated, get_user_watchlist, add_to_watchlist, remove_from_watchlist, mark_as_watched, unmark_as_watched, get_or_create_folder, rename_folder, delete_folder, move_to_folder, get_user_id_by_username, check_csv_changes
@@ -22,7 +49,12 @@ app.secret_key = "supersecret"  # Change this in production
 
 @app.before_request
 def check_csv_update():
-    """Check if CSV has been updated before each request"""
+    """
+    Middleware to check if the movies.csv file has been updated.
+    If changes are detected, the database is reseeded.
+    
+    This ensures the movie database stays in sync with the source CSV file.
+    """
     if request.endpoint != 'static':  # Skip for static files
         try:
             with sqlite3.connect("moodflix.db", timeout=20) as conn:
@@ -33,16 +65,26 @@ def check_csv_update():
                     session.clear()
         except sqlite3.Error as e:
             print(f"[APP] Database error during CSV check: {e}")
-            # Don't raise the error to allow the request to continue
 
 @app.route("/")
 def home():
+    """
+    Home page route handler.
+    
+    Displays:
+    - Featured movies with trailers
+    - Genre-based movie recommendations
+    - Personalized recommendations for logged-in users
+    - Movie carousels by genre
+    
+    Returns:
+        rendered template: index.html with movie data
+    """
     init_db()
-    # Add this line to initialize mood predictions when the app starts
     initialize_mood_predictions()
     username = session.get("username", "Guest")
     
-    # Get featured movies with YouTube trailers for the header (randomly selected)
+    # Get featured movies with YouTube trailers
     conn = sqlite3.connect("moodflix.db")
     c = conn.cursor()
     c.execute('''
@@ -69,14 +111,10 @@ def home():
         })
     conn.close()
     
-    # Keep track of movies we've shown to prevent duplicates
-    shown_movies = set()
+    # Track shown movies to prevent duplicates
+    shown_movies = set(movie["title"] for movie in featured_movies)
     
-    # Add featured movie titles to shown_movies
-    for movie in featured_movies:
-        shown_movies.add(movie["title"])
-    
-    # Define all genres we want to show
+    # Define and fetch movies for each genre
     all_genres = [
         "Action", "Drama", "Thriller", "Romance", "Comedy",
         "Sci-Fi", "Horror", "Adventure", "Animation", "Fantasy"
@@ -84,17 +122,18 @@ def home():
     
     genres = {}
     for genre in all_genres:
-        # Get movies for this genre, excluding ones we've already shown
         movies = get_movies_by_genre_paginated(genre, exclude_movies=list(shown_movies))
-        if movies:  # Only add genre if we found movies
+        if movies:
             genres[genre] = movies
-            # Add these movies to our shown list
-            for movie in movies:
-                shown_movies.add(movie["title"])
+            shown_movies.update(movie["title"] for movie in movies)
     
     user_recommendations = get_user_recommendations(username)
     
-    return render_template("index.html", genres=genres, username=username, featured_movies=featured_movies, user_recommendations=user_recommendations)
+    return render_template("index.html", 
+                         genres=genres, 
+                         username=username, 
+                         featured_movies=featured_movies, 
+                         user_recommendations=user_recommendations)
 
 @app.route("/moods")
 def moods():

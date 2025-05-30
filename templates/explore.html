@@ -1,3 +1,17 @@
+<!--
+  Explore Page (explore.html)
+  
+  Movie discovery and browsing page featuring:
+  - Categorized movie sections by genre
+  - Advanced filtering options
+  - Trending movies section
+  - New releases showcase
+  - Genre-based movie carousels
+  - Interactive movie cards with hover effects
+  - Quick add to watchlist functionality
+  - Detailed movie information on hover
+-->
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -7,6 +21,30 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet" />
     <style>
+        /*
+         * Page-specific styles
+         * 
+         * 1. Filter System:
+         * - Filter bar layout
+         * - Dropdown menus
+         * - Active states
+         * 
+         * 2. Movie Grid:
+         * - Responsive layout
+         * - Card design
+         * - Hover effects
+         * 
+         * 3. Genre Sections:
+         * - Section headers
+         * - Carousel navigation
+         * - Movie cards
+         * 
+         * 4. Interactive Elements:
+         * - Buttons and controls
+         * - Quick actions
+         * - Loading states
+         */
+        
         /* Navbar styling */
         nav {
             display: flex;
@@ -867,6 +905,30 @@
     <div class="toast-container" id="toast-container"></div>
 
     <script>
+        /*
+         * JavaScript Functionality
+         * 
+         * 1. Filter Management:
+         * - Handle filter changes
+         * - Update movie display
+         * - URL parameter handling
+         * 
+         * 2. Movie Loading:
+         * - Fetch filtered results
+         * - Update grid display
+         * - Handle loading states
+         * 
+         * 3. User Interactions:
+         * - Quick add to watchlist
+         * - View movie details
+         * - Genre navigation
+         * 
+         * 4. UI Components:
+         * - Carousel controls
+         * - Toast notifications
+         * - Dropdown menus
+         */
+        
         // List of available genres
         const genres = [
             'Action', 'Adventure', 'Animation', 'Comedy', 'Crime',

@@ -1,12 +1,59 @@
+<!--
+  Watchlist Page (watchlist.html)
+  
+  Personal movie collection management page that includes:
+  - User's saved movies organized in a grid layout
+  - Separate sections for "Want to Watch" and "Watched" movies
+  - Collapsible folders for better organization
+  - Movie cards with posters and basic information
+  - Quick actions to mark movies as watched/unwatched
+  - Remove movies from watchlist functionality
+  - Rating system for watched movies
+  - Folder management system
+-->
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <!-- Meta tags and title -->
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>My Watchlist - MoodFlix</title>
+    
+    <!-- External stylesheets -->
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet" />
+    
     <style>
+        /*
+         * Page-specific styles
+         * 
+         * 1. Watchlist Layout:
+         * - Container and grid system
+         * - Responsive design
+         * - Spacing and alignment
+         * 
+         * 2. Folder Components:
+         * - Collapsible sections
+         * - Header styling
+         * - Animation effects
+         * 
+         * 3. Movie Cards:
+         * - Card layout and design
+         * - Hover effects
+         * - Status badges
+         * 
+         * 4. Interactive Elements:
+         * - Buttons and controls
+         * - Rating system
+         * - Modal windows
+         * 
+         * 5. Filter System:
+         * - Filter buttons
+         * - Active states
+         * - Transition effects
+         */
+         
         .watchlist-container {
             max-width: var(--content-max-width);
             margin: 0 auto;
@@ -684,6 +731,13 @@
     </style>
 </head>
 <body>
+    <!-- 
+      Navigation Header
+      - Site logo
+      - Main navigation
+      - Search functionality
+      - User profile access
+    -->
     <header>
         <div class="logo">MoodFlix</div>
         <nav>
@@ -710,6 +764,12 @@
     </header>
     
     <main>
+        <!-- 
+          Watchlist Container
+          - Page title
+          - Create folder button
+          - Filter controls
+        -->
         <div class="watchlist-container">
             <div class="watchlist-header">
                 <h1 class="watchlist-title">My Watchlist</h1>
@@ -725,6 +785,12 @@
                 <button class="filter-btn" data-filter="unwatched">Unwatched</button>
             </div>
             
+            <!-- 
+              Movie Folders Section
+              - Collapsible folder structure
+              - Movie grid layout
+              - Empty state handling
+            -->
             {% if watchlist.movies_by_folder %}
                 {% for folder_name, movies in watchlist.movies_by_folder.items() %}
                 <div class="folder-section" data-folder="{{ folder_name }}">
@@ -822,7 +888,14 @@
         </div>
     </main>
     
-    <!-- Create Folder Modal -->
+    <!-- 
+      Modal Components
+      - Create folder modal
+      - Rename folder modal
+      - Delete folder modal
+      - Move to folder modal
+      - Rate movie modal
+    -->
     <div id="createFolderModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -929,9 +1002,39 @@
         </div>
     </div>
     
+    <!-- Toast notification container -->
     <div id="toast" class="toast"></div>
     
     <script>
+        /*
+         * JavaScript Functionality
+         * 
+         * 1. Folder Management:
+         * - Save/load folder states
+         * - Collapse/expand functionality
+         * - Create/rename/delete operations
+         * 
+         * 2. Movie Management:
+         * - Move between folders
+         * - Mark as watched/unwatched
+         * - Rating system
+         * 
+         * 3. Filter System:
+         * - Filter by watched/unwatched
+         * - Dynamic content updates
+         * - Visibility controls
+         * 
+         * 4. UI Components:
+         * - Modal controls
+         * - Toast notifications
+         * - Dropdown menus
+         * 
+         * 5. API Integration:
+         * - Folder operations
+         * - Movie operations
+         * - Rating submissions
+         */
+         
         // Save folder collapse state to localStorage
         function saveFolderState(folderName, isCollapsed) {
             const folderStates = JSON.parse(localStorage.getItem('folderStates') || '{}');

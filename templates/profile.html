@@ -1,12 +1,54 @@
+<!--
+  User Profile Page (profile.html)
+  
+  User account management page that includes:
+  - User information display
+  - Account settings
+  - Viewing history
+  - Movie preferences
+  - Watchlist statistics
+  - Account activity
+  - Personalization options
+  - Profile management tools
+-->
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <!-- Meta tags and title -->
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>Profile - MoodFlix</title>
+    <title>My Profile - MoodFlix</title>
+    
+    <!-- External stylesheets -->
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet" />
+    
     <style>
+        /*
+         * Page-specific styles
+         * 
+         * 1. Profile Layout:
+         * - Section organization
+         * - Card design
+         * - Responsive grid
+         * 
+         * 2. User Stats:
+         * - Statistics display
+         * - Charts and graphs
+         * - Data visualization
+         * 
+         * 3. Settings Panel:
+         * - Form controls
+         * - Input styling
+         * - Toggle switches
+         * 
+         * 4. Activity Feed:
+         * - Timeline layout
+         * - Event cards
+         * - Status indicators
+         */
+         
         /* Navbar styling */
         nav {
             display: flex;
@@ -158,6 +200,13 @@
     </style>
 </head>
 <body>
+    <!-- 
+      Navigation Header
+      - Site logo
+      - Main navigation
+      - Search functionality
+      - User profile access
+    -->
     <header>
         <div class="logo">MoodFlix</div>
         <nav>
@@ -184,6 +233,12 @@
     </header>
 
     <main>
+        <!-- 
+          Profile Header
+          - User avatar
+          - Basic info
+          - Quick stats
+        -->
         <div class="profile-container">
             <div class="profile-header">
                 <h1 class="profile-title">Your Profile</h1>
@@ -200,9 +255,56 @@
                 </div>
             </div>
         </div>
+        
+        <!-- 
+          Profile Content
+          - Settings sections
+          - Activity history
+          - Preferences
+        -->
+        <div class="profile-content">
+            <!-- ... existing code ... -->
+        </div>
+        
+        <!-- 
+          Statistics Section
+          - Viewing stats
+          - Genre preferences
+          - Rating history
+        -->
+        <div class="stats-section">
+            <!-- ... existing code ... -->
+        </div>
     </main>
-    
+
+    <!-- Toast notification container -->
+    <div id="toast" class="toast"></div>
+
     <script>
+        /*
+         * JavaScript Functionality
+         * 
+         * 1. Profile Management:
+         * - Update user info
+         * - Save preferences
+         * - Handle settings
+         * 
+         * 2. Data Visualization:
+         * - Generate charts
+         * - Update statistics
+         * - Format data
+         * 
+         * 3. User Interactions:
+         * - Form validation
+         * - Save changes
+         * - Upload avatar
+         * 
+         * 4. UI Components:
+         * - Tab navigation
+         * - Toast notifications
+         * - Modal dialogs
+         */
+         
         function toggleDropdown() {
             const menu = document.getElementById('userDropdown');
             menu.style.display = (menu.style.display === 'block') ? 'none' : 'block';

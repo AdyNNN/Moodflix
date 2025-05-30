@@ -1,3 +1,17 @@
+<!--
+  Moods Page (moods.html)
+  
+  Movie recommendation page based on user's emotional state:
+  - Grid of different mood categories (Happy, Sad, Excited, etc.)
+  - Mood-based movie recommendations
+  - Dynamic movie suggestions that match the selected mood
+  - Interactive mood selection interface
+  - Movie cards with posters and basic details
+  - Quick access to movie details
+  - Add to watchlist functionality
+  - Personalized recommendations based on user preferences
+-->
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -7,6 +21,30 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet" />
     <style>
+        /*
+         * Page-specific styles
+         * 
+         * 1. Mood Grid Layout:
+         * - Responsive grid system
+         * - Mood card design
+         * - Hover effects
+         * 
+         * 2. Movie Recommendations:
+         * - Results layout
+         * - Movie card styling
+         * - Animation effects
+         * 
+         * 3. Interactive Elements:
+         * - Mood selection
+         * - Quick actions
+         * - Loading states
+         * 
+         * 4. Visual Feedback:
+         * - Active states
+         * - Transitions
+         * - Toast notifications
+         */
+        
         :root {
             --content-max-width: 1400px;
             --content-padding: 20px;
@@ -1026,6 +1064,30 @@
     <div class="toast-container" id="toast-container"></div>
     
     <script>
+        /*
+         * JavaScript Functionality
+         * 
+         * 1. Mood Selection:
+         * - Handle mood clicks
+         * - Update active states
+         * - Trigger recommendations
+         * 
+         * 2. Movie Loading:
+         * - Fetch mood-based recommendations
+         * - Update movie display
+         * - Handle loading states
+         * 
+         * 3. User Interactions:
+         * - Add to watchlist
+         * - View movie details
+         * - Toast notifications
+         * 
+         * 4. UI Updates:
+         * - Dynamic content loading
+         * - Smooth transitions
+         * - Error handling
+         */
+        
         document.addEventListener('DOMContentLoaded', function() {
             const moodButtons = document.querySelectorAll('.mood');
             const moodSelectionSection = document.getElementById('mood-selection');

@@ -1,3 +1,16 @@
+<!--
+  Movie Details Page (view_movies.html)
+  
+  This page displays detailed information about a specific movie:
+  - Movie trailer with mute/unmute functionality
+  - Movie poster and comprehensive details (title, genre, rating, etc.)
+  - Add/Remove from watchlist functionality
+  - Mark as watched/unwatched options
+  - Similar movie recommendations
+  - Interactive movie carousel for similar movies
+  - Refresh recommendations feature
+-->
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -6,6 +19,29 @@
     <title>{{ movie.title }} - MoodFlix</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <style>
+        /*
+         * Page-specific styles
+         * 
+         * 1. Modal Styles:
+         * - Trailer modal with animations
+         * - Close button positioning
+         * - Backdrop effects
+         * 
+         * 2. Action Button Styles:
+         * - Primary and secondary buttons
+         * - Hover effects
+         * - Icon integration
+         * 
+         * 3. Toast Notification Styles:
+         * - Success/error states
+         * - Animation effects
+         * - Positioning
+         * 
+         * 4. Layout Components:
+         * - Movie details grid
+         * - Trailer section
+         * - Similar movies carousel
+         */
         .modal {
             display: none;
             position: fixed;
@@ -590,6 +626,13 @@
     </style>
 </head>
 <body>
+    <!-- 
+      Navigation Header
+      - Site logo
+      - Main navigation
+      - Search functionality
+      - User account access
+    -->
     <header>
         <div class="logo">MoodFlix</div>
         <nav>
@@ -621,8 +664,14 @@
     </header>
 
     <main>
-      {% if movie.trailer_url and ('youtube.com' in movie.trailer_url or 'youtu.be' in movie.trailer_url) %}
-      <!-- TRAILER HEADER -->
+        <!-- 
+          Movie Trailer Section
+          - Autoplay trailer (if available)
+          - Mute/unmute controls
+          - Gradient overlay
+        -->
+        {% if movie.trailer_url and ('youtube.com' in movie.trailer_url or 'youtu.be' in movie.trailer_url) %}
+        <!-- TRAILER HEADER -->
         <div class="trailer-header">
           <div class="trailer-video-wrapper">
             <iframe
@@ -683,8 +732,12 @@
             </div>
           </div>
         </div>
-      {% else %}
-        <!-- Alternative layout for movies without YouTube trailers -->
+        {% else %}
+        <!-- 
+          Alternative Layout (No Trailer)
+          - Large poster display
+          - Movie details in side panel
+        -->
         <div class="no-trailer-container">
           <img src="{{ movie.poster_url }}" alt="{{ movie.title }} poster" class="no-trailer-poster" />
           
@@ -725,47 +778,58 @@
             </div>
           </div>
         </div>
-      {% endif %}
-      
-      <!-- Netflix-Style Similar Movies Section -->
-      <div class="similar-movies-section genre-section">
-        <div class="similar-movies-header genre-header">
-          <h2>Similar Movies You Might Like</h2>
-        </div>
+        {% endif %}
         
-        <div class="similar-movies-carousel genre-carousel">
-          <div class="carousel-wrapper">
-            <button class="carousel-btn prev-btn" id="similarPrevBtn">
-              <span class="arrow">&#10094;</span>
-            </button>
-            
-            <div id="similarMoviesList" class="similar-movies-list movie-list">
-              {% for similar_movie in similar_movies %}
-              <a href="{{ url_for('view_movie', title=similar_movie.title) }}" class="similar-movie-card movie-card">
-                <img src="{{ similar_movie.poster_url }}" alt="{{ similar_movie.title }} poster" class="similar-movie-poster movie-poster">
-                <div class="similar-movie-info movie-info-block">
-                  <h3 class="similar-movie-title movie-title">{{ similar_movie.title }}</h3>
-                  <div class="similar-movie-genre movie-genre">{{ similar_movie.genre }}</div>
-                  <div class="similar-movie-rating movie-rating">{{ similar_movie.rating }}/10</div>
-                </div>
-              </a>
-              {% endfor %}
+        <!-- 
+          Similar Movies Section
+          - Netflix-style carousel
+          - Movie recommendations
+          - Interactive navigation
+          - Refresh functionality
+        -->
+        <div class="similar-movies-section genre-section">
+          <div class="similar-movies-header genre-header">
+            <h2>Similar Movies You Might Like</h2>
+          </div>
+          
+          <div class="similar-movies-carousel genre-carousel">
+            <div class="carousel-wrapper">
+              <button class="carousel-btn prev-btn" id="similarPrevBtn">
+                <span class="arrow">&#10094;</span>
+              </button>
+              
+              <div id="similarMoviesList" class="similar-movies-list movie-list">
+                {% for similar_movie in similar_movies %}
+                <a href="{{ url_for('view_movie', title=similar_movie.title) }}" class="similar-movie-card movie-card">
+                  <img src="{{ similar_movie.poster_url }}" alt="{{ similar_movie.title }} poster" class="similar-movie-poster movie-poster">
+                  <div class="similar-movie-info movie-info-block">
+                    <h3 class="similar-movie-title movie-title">{{ similar_movie.title }}</h3>
+                    <div class="similar-movie-genre movie-genre">{{ similar_movie.genre }}</div>
+                    <div class="similar-movie-rating movie-rating">{{ similar_movie.rating }}/10</div>
+                  </div>
+                </a>
+                {% endfor %}
+              </div>
+              
+              <button class="carousel-btn next-btn visible" id="similarNextBtn">
+                <span class="arrow">&#10095;</span>
+              </button>
             </div>
-            
-            <button class="carousel-btn next-btn visible" id="similarNextBtn">
-              <span class="arrow">&#10095;</span>
+          </div>
+          
+          <div style="text-align: center; margin-top: 20px;">
+            <button id="refreshSimilarBtn" class="refresh-btn" style="margin: 0 auto;">
+              <span>Refresh Recommendations</span>
             </button>
           </div>
         </div>
-        
-        <div style="text-align: center; margin-top: 20px;">
-          <button id="refreshSimilarBtn" class="refresh-btn" style="margin: 0 auto;">
-            <span>Refresh Recommendations</span>
-          </button>
-        </div>
-      </div>
     </main>
 
+    <!-- 
+      Modals and Overlays
+      - Trailer fullscreen modal
+      - Toast notifications
+    -->
     {% if movie.trailer_url and ('youtube.com' in movie.trailer_url or 'youtu.be' in movie.trailer_url) %}
     <div id="trailerModal" class="modal">
         <div class="modal-content">
@@ -778,6 +842,29 @@
     <div id="toast" class="toast"></div>
 
     <script>
+        /*
+         * JavaScript Functionality
+         * 
+         * 1. Trailer Controls:
+         * - Mute/unmute toggle
+         * - Fullscreen modal
+         * - Video playback management
+         * 
+         * 2. Similar Movies Carousel:
+         * - Navigation controls
+         * - Dynamic loading
+         * - Refresh functionality
+         * 
+         * 3. User Interactions:
+         * - Watchlist management
+         * - Movie rating system
+         * - Toast notifications
+         * 
+         * 4. UI Components:
+         * - Modal controls
+         * - Dropdown menus
+         * - Button states
+         */
         // Mute functionality
         let isMuted = true;
 

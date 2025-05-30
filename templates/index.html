@@ -1,13 +1,40 @@
+<!--
+  Home Page (index.html)
+  
+  This is the main landing page of MoodFlix. It features:
+  - A featured movie trailer in the header with autoplay
+  - Personalized movie recommendations based on user's watchlist
+  - Categorized movie sections (Popular, New Releases, etc.)
+  - Netflix-style movie carousels with hover effects
+  - Dynamic movie cards with posters and basic info
+  - Mute/unmute functionality for trailers
+-->
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <!-- Meta tags for proper character encoding and responsive viewport -->
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>MoodFlix - Home</title>
+    
+    <!-- External CSS and Font imports -->
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    <!-- Netflix-style font -->
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet" />
+    
     <style>
+        /* 
+         * Page-specific styles section
+         * Contains styles for:
+         * - Explore all section with gradient background
+         * - Genre headers and navigation
+         * - Trailer hover effects
+         * - Navigation bar customization
+         * - User dropdown menu
+         * - Quick add to watchlist buttons
+         * - Toast notifications
+         */
+        
         .explore-all-section {
             background: linear-gradient(to right, #e50914, #b20710);
             padding: 2rem;
@@ -292,38 +319,51 @@
     </style>
 </head>
 <body>
+    <!-- 
+      Navigation Header Section
+      - Logo
+      - Main navigation links
+      - Search bar
+      - User profile dropdown
+    -->
     <header>
-    <div class="logo">MoodFlix</div>
-    <nav>
-        <a href="{{ url_for('home') }}" class="active">Home</a>
-        <a href="{{ url_for('watchlist') }}">My Watchlist</a>
-        <a href="{{ url_for('moods') }}">Mood</a>
-        <a href="{{ url_for('explore') }}">Explore</a>
-    </nav>
-    <div class="search-profile">
-        <div class="search-container">
-            <form action="{{ url_for('search') }}" method="GET">
-                <input type="text" name="query" placeholder="Search movies..." required>
-            </form>
-        </div>
-        {% if username != "Guest" %}
-        <div class="user-dropdown" onclick="toggleDropdown()">
-            <span class="label">Logged in as</span>
-            <span class="username">{{ username }}</span>
-            <div class="dropdown-menu" id="userDropdown">
-                <a href="{{ url_for('profile') }}">View Profile</a>
-                <a href="{{ url_for('logout') }}">Logout</a>
+        <div class="logo">MoodFlix</div>
+        <nav>
+            <a href="{{ url_for('home') }}" class="active">Home</a>
+            <a href="{{ url_for('watchlist') }}">My Watchlist</a>
+            <a href="{{ url_for('moods') }}">Mood</a>
+            <a href="{{ url_for('explore') }}">Explore</a>
+        </nav>
+        <div class="search-profile">
+            <div class="search-container">
+                <form action="{{ url_for('search') }}" method="GET">
+                    <input type="text" name="query" placeholder="Search movies..." required>
+                </form>
             </div>
+            {% if username != "Guest" %}
+            <div class="user-dropdown" onclick="toggleDropdown()">
+                <span class="label">Logged in as</span>
+                <span class="username">{{ username }}</span>
+                <div class="dropdown-menu" id="userDropdown">
+                    <a href="{{ url_for('profile') }}">View Profile</a>
+                    <a href="{{ url_for('logout') }}">Logout</a>
+                </div>
+            </div>
+            {% else %}
+            <span class="label">Logged in as</span>
+            <a href="{{ url_for('signin') }}" class="guest">Guest</a>
+            {% endif %}
         </div>
-        {% else %}
-        <span class="label">Logged in as</span>
-        <a href="{{ url_for('signin') }}" class="guest">Guest</a>
-        {% endif %}
-    </div>
-</header>
+    </header>
 
     <main>
-        <!-- Trailer Header Section -->
+        <!-- 
+          Featured Movie Trailer Section
+          - Autoplay trailer with mute control
+          - Gradient overlay for text visibility
+          - Hover target area for movie info
+          - Featured movie card with details
+        -->
         {% if featured_movies %}
         <div class="trailer-header">
             <div class="trailer-video-wrapper" id="trailerContainer">
@@ -346,6 +386,13 @@
         </div>
         {% endif %}
         
+        <!-- 
+          Main Content Section
+          - Welcome message
+          - Personalized recommendations (if user is logged in)
+          - Genre-based movie carousels
+          - Movie cards with quick actions
+        -->
         <div class="content-container" style="margin-top: 30px;">
             <h1 style="text-align: center;">Welcome to MoodFlix</h1>
             <p class="intro-text">Discover movies by mood. Whether you're happy, sad, or in love, we've got something for you.</p>
@@ -433,10 +480,44 @@
         </div>
     </main>
 
-    <!-- Toast container for notifications -->
+    <!-- 
+      Toast Notification Container
+      - Shows success/error messages
+      - Auto-dismissing notifications
+      - Styled for visibility
+    -->
     <div class="toast-container" id="toast-container"></div>
 
     <script>
+        /*
+         * JavaScript Functionality
+         * 
+         * 1. Featured Movies Management:
+         * - Trailer playback control
+         * - Mute/unmute functionality
+         * - Auto-rotation of featured movies
+         * 
+         * 2. Movie Carousel Navigation:
+         * - Previous/Next navigation
+         * - Dynamic loading of movies
+         * - Visibility controls for navigation buttons
+         * 
+         * 3. Watchlist Integration:
+         * - Quick add/remove from watchlist
+         * - User watchlist state management
+         * - API interactions for watchlist updates
+         * 
+         * 4. UI Components:
+         * - Dropdown menu functionality
+         * - Toast notification system
+         * - Modal interactions
+         * 
+         * 5. Data Management:
+         * - Movie data handling
+         * - User preferences
+         * - State management
+         */
+        
         // Featured Movies Data from Flask
         const featuredMovies = [
             {% for movie in featured_movies %}

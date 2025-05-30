@@ -1,12 +1,54 @@
+<!--
+  Search Results Page (search_results.html)
+  
+  Displays movie search results with the following features:
+  - Grid layout of matching movies
+  - Search query display
+  - Filter and sort options
+  - Movie cards with essential information
+  - Quick actions (add to watchlist, view details)
+  - No results handling
+  - Pagination for large result sets
+  - Search suggestions
+-->
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <!-- Meta tags and title -->
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>Search Results - MoodFlix</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+    
+    <!-- External stylesheets -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet" />
+    
     <style>
+        /*
+         * Page-specific styles
+         * 
+         * 1. Results Layout:
+         * - Grid system
+         * - Responsive design
+         * - Spacing and alignment
+         * 
+         * 2. Search Components:
+         * - Search bar styling
+         * - Filter options
+         * - Sort controls
+         * 
+         * 3. Movie Cards:
+         * - Card design
+         * - Hover effects
+         * - Quick actions
+         * 
+         * 4. Pagination:
+         * - Page navigation
+         * - Active states
+         * - Loading indicators
+         */
+         
         /* Navbar styling */
         header {
             display: flex;
@@ -399,6 +441,13 @@
     </style>
 </head>
 <body>
+    <!-- 
+      Navigation Header
+      - Site logo
+      - Main navigation
+      - Search functionality
+      - User profile access
+    -->
     <header>
         <div class="logo">MoodFlix</div>
         <nav>
@@ -430,6 +479,12 @@
     </header>
     
     <main>
+        <!-- 
+          Search Results Header
+          - Search query display
+          - Result count
+          - Filter options
+        -->
         <div class="search-results-container">
             <div class="search-header">
                 <h1 class="search-title">Search Results</h1>
@@ -442,6 +497,12 @@
                 </p>
             </div>
             
+            <!-- 
+              Results Grid
+              - Movie cards
+              - Quick actions
+              - No results message
+            -->
             {% if movies %}
                 <div class="movie-grid">
                     {% for movie in movies %}
@@ -470,12 +531,46 @@
                 </div>
             {% endif %}
         </div>
+        
+        <!-- 
+          Pagination
+          - Page navigation
+          - Page numbers
+          - Previous/Next buttons
+        -->
+        <div class="pagination">
+            <!-- ... existing code ... -->
+        </div>
     </main>
     
-    <!-- Toast container for notifications -->
+    <!-- Toast notification container -->
     <div class="toast-container" id="toastContainer"></div>
     
     <script>
+        /*
+         * JavaScript Functionality
+         * 
+         * 1. Search Management:
+         * - Handle search input
+         * - Update results
+         * - Filter handling
+         * 
+         * 2. Results Display:
+         * - Load movie data
+         * - Update grid
+         * - Handle empty states
+         * 
+         * 3. User Interactions:
+         * - Quick add to watchlist
+         * - View movie details
+         * - Filter/sort options
+         * 
+         * 4. Pagination:
+         * - Page navigation
+         * - URL management
+         * - Loading states
+         */
+        
         // Toggle dropdown menu
         function toggleDropdown() {
             const menu = document.getElementById('userDropdown');

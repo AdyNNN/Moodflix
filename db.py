@@ -1,3 +1,50 @@
+"""
+MoodFlix Database Module (db.py)
+
+This module handles all database operations for the MoodFlix application.
+It manages movie data, user information, watchlists, and movie recommendations.
+
+Database Schema:
+1. users: User account information
+   - id (PRIMARY KEY)
+   - username (UNIQUE)
+   - password
+
+2. movies: Movie information
+   - id (PRIMARY KEY)
+   - title, genre, description
+   - rating, release_date, cast
+   - runtime, poster_url, trailer_url
+   - predicted_mood
+
+3. folders: User's watchlist folders
+   - id (PRIMARY KEY)
+   - user_id (FOREIGN KEY -> users)
+   - name
+   - date_created
+
+4. watchlist: User's saved movies
+   - id (PRIMARY KEY)
+   - user_id (FOREIGN KEY -> users)
+   - movie_id (FOREIGN KEY -> movies)
+   - folder_id (FOREIGN KEY -> folders)
+   - date_added
+
+5. watched: User's watched movies
+   - id (PRIMARY KEY)
+   - user_id (FOREIGN KEY -> users)
+   - movie_id (FOREIGN KEY -> movies)
+   - date_watched
+   - user_rating
+
+The module also includes functions for:
+- Database initialization and seeding
+- Movie retrieval and filtering
+- Watchlist management
+- User preferences
+- Movie recommendations
+"""
+
 import sqlite3
 import os
 import csv
@@ -8,7 +55,14 @@ DB_FILE = 'moodflix.db'
 CSV_FILE = 'movies.csv'
 
 def get_csv_hash():
-    """Calculate hash of CSV file to detect changes"""
+    """
+    Calculate MD5 hash of the movies CSV file.
+    
+    Used to detect changes in the source data file.
+    
+    Returns:
+        str: MD5 hash of the CSV file, or None if file doesn't exist
+    """
     if not os.path.exists(CSV_FILE):
         return None
     
@@ -16,7 +70,17 @@ def get_csv_hash():
         return hashlib.md5(f.read()).hexdigest()
 
 def check_csv_changes(conn):
-    """Check if CSV file has changed by comparing stored and current hash"""
+    """
+    Check if the movies CSV file has been modified.
+    
+    Compares stored hash with current file hash to detect changes.
+    
+    Args:
+        conn: SQLite database connection
+        
+    Returns:
+        bool: True if CSV has changed, False otherwise
+    """
     c = conn.cursor()
     
     # Create table to store CSV hash if it doesn't exist
@@ -47,14 +111,29 @@ def check_csv_changes(conn):
     return False
 
 def init_db(force_reseed=False):
+    """
+    Initialize the database and create necessary tables.
+    
+    If force_reseed is True or if the CSV file has changed,
+    the movies table will be reseeded with fresh data.
+    
+    Args:
+        force_reseed (bool): Force database reseeding
+        
+    Tables created:
+    - users: User account information
+    - movies: Movie catalog
+    - folders: Watchlist organization
+    - watchlist: User's saved movies
+    - watched: User's watched movies
+    """
     conn = None
     try:
-        conn = sqlite3.connect(DB_FILE, timeout=20)  # Add timeout for lock waiting
+        conn = sqlite3.connect(DB_FILE, timeout=20)
         conn.execute("PRAGMA busy_timeout = 30000")  # Wait up to 30 seconds for locks
         c = conn.cursor()
 
-        # --- Create tables ---
-        # 1. Users table (must be first as other tables reference it)
+        # Create tables with detailed schema
         c.execute('''
             CREATE TABLE IF NOT EXISTS users (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -63,7 +142,6 @@ def init_db(force_reseed=False):
             )
         ''')
 
-        # 2. Movies table
         c.execute('''
             CREATE TABLE IF NOT EXISTS movies (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -80,7 +158,6 @@ def init_db(force_reseed=False):
             )
         ''')
 
-        # 3. Folders table (references users)
         c.execute('''
             CREATE TABLE IF NOT EXISTS folders (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -92,7 +169,6 @@ def init_db(force_reseed=False):
             )
         ''')
 
-        # 4. Watchlist table (references users, movies, and folders)
         c.execute('''
             CREATE TABLE IF NOT EXISTS watchlist (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -107,7 +183,6 @@ def init_db(force_reseed=False):
             )
         ''')
 
-        # 5. Watched table (references users and movies)
         c.execute('''
             CREATE TABLE IF NOT EXISTS watched (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -121,40 +196,39 @@ def init_db(force_reseed=False):
             )
         ''')
 
-        # Check if we need to reseed the database
+        # Check if reseeding is needed
         need_reseed = force_reseed
         
         if not need_reseed and os.path.exists(CSV_FILE):
-            # Check if CSV has changed by comparing hashes
             if check_csv_changes(conn):
                 print("[DB] CSV file has changed. Reseeding database...")
                 need_reseed = True
         
         if need_reseed:
             try:
-                # Clear existing movies and their related data
+                # Clear existing data
                 print("[DB] Clearing existing movies and related data...")
-                c.execute("DELETE FROM watchlist")  # Clear watchlist first due to foreign key
-                c.execute("DELETE FROM watched")    # Clear watched data
-                c.execute("DELETE FROM movies")     # Then clear movies
-                conn.commit()  # Commit the deletions
+                c.execute("DELETE FROM watchlist")
+                c.execute("DELETE FROM watched")
+                c.execute("DELETE FROM movies")
+                conn.commit()
                 
-                # Delete the mood classifier model to force retraining
+                # Remove old mood classifier
                 if os.path.exists('mood_classifier.pkl'):
                     os.remove('mood_classifier.pkl')
                     print("[DB] Removed old mood classifier model for retraining...")
                 
-                # Reseed from CSV
+                # Seed from CSV
                 if os.path.exists(CSV_FILE):
                     print("[DB] Seeding movies from CSV...")
                     with open(CSV_FILE, newline='', encoding='utf-8') as csvfile:
                         reader = csv.DictReader(csvfile)
                         
-                        # Map CSV columns to database columns
+                        # Define CSV to database column mapping
                         column_mapping = {
                             'title': 'title',
-                            'genres': 'genre',  # Note the difference
-                            'overview': 'description',  # Note the difference
+                            'genres': 'genre',
+                            'overview': 'description',
                             'rating': 'rating',
                             'release_date': 'release_date',
                             'cast': 'cast',
@@ -164,12 +238,12 @@ def init_db(force_reseed=False):
                         }
                         
                         for row in reader:
-                            # Extract and clean data using the mapping
+                            # Process and clean data
                             data = {}
                             for csv_col, db_col in column_mapping.items():
                                 value = row.get(csv_col, '').strip()
                                 
-                                # Special handling for different column types
+                                # Type-specific processing
                                 if db_col == 'rating':
                                     try:
                                         value = round(float(value or 0), 1)
@@ -182,9 +256,7 @@ def init_db(force_reseed=False):
                                         value = 0
                                 elif db_col == 'poster_url':
                                     value = value or '/static/posters/placeholder.jpg'
-                                    # Ensure poster URL starts with /static/posters/
                                     if not value.startswith('/static/posters/'):
-                                        # Check if the file exists in the posters directory
                                         poster_path = os.path.join('static/posters', os.path.basename(value))
                                         if os.path.exists(poster_path):
                                             value = f'/static/posters/{os.path.basename(value)}'
@@ -192,7 +264,7 @@ def init_db(force_reseed=False):
                                             value = '/static/posters/placeholder.jpg'
                                 
                                 data[db_col] = value
-                            
+
                             # Insert into database
                             c.execute('''
                                 INSERT INTO movies (

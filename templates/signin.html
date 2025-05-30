@@ -1,9 +1,53 @@
+<!--
+  Sign In Page (signin.html)
+  
+  User authentication page featuring:
+  - Login form
+  - Username/password fields
+  - Remember me option
+  - Password recovery link
+  - Registration link for new users
+  - Error handling
+  - Form validation
+  - Secure authentication process
+-->
+
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <!-- Meta tags and title -->
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>Sign In - MoodFlix</title>
+    
+    <!-- External stylesheets -->
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    
     <style>
+        /*
+         * Page-specific styles
+         * 
+         * 1. Form Layout:
+         * - Centered design
+         * - Card container
+         * - Responsive sizing
+         * 
+         * 2. Input Fields:
+         * - Text styling
+         * - Focus states
+         * - Error states
+         * 
+         * 3. Buttons:
+         * - Primary button
+         * - Link styling
+         * - Hover effects
+         * 
+         * 4. Error Messages:
+         * - Alert design
+         * - Color coding
+         * - Animation
+         */
+         
         /* Toast notification styles */
         .toast {
             position: fixed;
@@ -30,22 +74,77 @@
     </style>
 </head>
 <body class="auth-page">
-    <div class="auth-container">
-        <h1>Sign In</h1>
-        <form id="signin-form">
-            <div class="form-group">
-                <input type="text" name="username" placeholder="Username" required />
-            </div>
-            <div class="form-group">
-                <input type="password" name="password" placeholder="Password" required />
-            </div>
-            <button type="submit">Sign In</button>
-        </form>
-        <p>Don't have an account? <a href="{{ url_for('register') }}">Sign Up</a></p>
-        <p><a href="{{ url_for('home') }}">Home</a></p>
-    </div>
+    <!-- 
+      Navigation Header
+      - Site logo
+      - Minimal navigation
+    -->
+    <header>
+        // ... existing code ...
+    </header>
+
+    <main>
+        <!-- 
+          Sign In Form
+          - Username input
+          - Password input
+          - Remember me checkbox
+          - Submit button
+        -->
+        <div class="auth-container">
+            <h1>Sign In</h1>
+            <form id="signin-form">
+                <div class="form-group">
+                    <input type="text" name="username" placeholder="Username" required />
+                </div>
+                <div class="form-group">
+                    <input type="password" name="password" placeholder="Password" required />
+                </div>
+                <button type="submit">Sign In</button>
+            </form>
+            <p>Don't have an account? <a href="{{ url_for('register') }}">Sign Up</a></p>
+            <p><a href="{{ url_for('home') }}">Home</a></p>
+        </div>
+        
+        <!-- 
+          Additional Links
+          - Password recovery
+          - Registration
+          - Help center
+        -->
+        <div class="auth-links">
+            // ... existing code ...
+        </div>
+    </main>
+
+    <!-- Toast notification container -->
+    <div id="toast" class="toast"></div>
 
     <script>
+        /*
+         * JavaScript Functionality
+         * 
+         * 1. Form Validation:
+         * - Input validation
+         * - Error display
+         * - Submit handling
+         * 
+         * 2. User Interactions:
+         * - Remember me toggle
+         * - Show/hide password
+         * - Form submission
+         * 
+         * 3. Error Handling:
+         * - Display error messages
+         * - Clear form errors
+         * - Server response
+         * 
+         * 4. UI Components:
+         * - Toast notifications
+         * - Loading states
+         * - Transitions
+         */
+         
         // Function to show toast notification
         function showToast(message, type = 'error') {
             // Remove any existing toast
