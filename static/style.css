@@ -1167,3 +1167,32 @@ main {
     margin: 0 auto;
     padding: var(--content-padding);
 }
+
+/* Add mute button styles */
+.mute-button {
+  position: absolute;
+  bottom: 20px;
+  right: 20px;
+  z-index: 10;
+  background: rgba(0, 0, 0, 0.7);
+  border: none;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.mute-button:hover {
+  background: rgba(229, 9, 20, 0.8);
+  transform: scale(1.1);
+}
+
+.mute-button svg {
+  width: 24px;
+  height: 24px;
+  fill: white;
+}
